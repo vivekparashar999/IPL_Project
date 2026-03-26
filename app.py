@@ -120,6 +120,51 @@ if overs_completed == 20:
 
 st.markdown("---")
 
+# Pitch & Conditions (heuristic adjustments in log-odds space)
+st.markdown("### 🌤️ Pitch & Conditions")
+st.caption("Optional - adjusts prediction based on ground and weather conditions")
+
+adj_values = {}
+
+col_p1, col_p2 = st.columns(2)
+with col_p1:
+    pitch_opts = {'Flat (Batting)': 0.15, 'Balanced': 0, 'Turning (Spin)': -0.20,
+                  'Seaming (Pace)': -0.18, 'Cracked': -0.25}
+    pitch_type = st.selectbox('Pitch Type', list(pitch_opts.keys()), index=1)
+    adj_values['pitch'] = pitch_opts[pitch_type]
+with col_p2:
+    wear_opts = {'Fresh (1st match)': 0, 'Used (2-3 matches)': -0.10, 'Worn (4+ matches)': -0.18}
+    pitch_wear = st.selectbox('Pitch Wear', list(wear_opts.keys()), index=0)
+    adj_values['wear'] = wear_opts[pitch_wear]
+
+col_d1, col_d2 = st.columns(2)
+with col_d1:
+    dew_opts = {'None': 0, 'Light Dew': 0.12, 'Heavy Dew': 0.25}
+    dew_factor = st.selectbox('Dew Factor', list(dew_opts.keys()), index=0)
+    adj_values['dew'] = dew_opts[dew_factor]
+with col_d2:
+    match_opts = {'Day': 0, 'Day-Night': 0.05, 'Night': 0.10}
+    match_type = st.selectbox('Match Type', list(match_opts.keys()), index=0)
+    adj_values['match'] = match_opts[match_type]
+
+col_w1, col_w2 = st.columns(2)
+with col_w1:
+    hum_opts = {'Low (<40%)': -0.05, 'Moderate (40-70%)': 0, 'High (>70%)': 0.08}
+    humidity = st.selectbox('Humidity', list(hum_opts.keys()), index=1)
+    adj_values['humidity'] = hum_opts[humidity]
+with col_w2:
+    temp_opts = {'Cool (<25°C)': -0.05, 'Moderate (25-35°C)': 0, 'Hot (>35°C)': 0.05}
+    temperature = st.selectbox('Temperature', list(temp_opts.keys()), index=1)
+    adj_values['temp'] = temp_opts[temperature]
+
+toss_opts = {'Not Specified': 0, 'Batting Team': 0.12, 'Bowling Team': -0.05}
+toss_winner = st.selectbox('Toss Won By', list(toss_opts.keys()), index=0)
+adj_values['toss'] = toss_opts[toss_winner]
+
+total_adj = sum(adj_values.values())
+
+st.markdown("---")
+
 # Prediction
 if st.button('🚀 Predict Winning Probability', use_container_width=True):
 
@@ -180,8 +225,19 @@ if st.button('🚀 Predict Winning Probability', use_container_width=True):
                 loss_prob = result[0]
                 win_prob = result[1]
 
+                # Apply conditions adjustment in log-odds space
+                if total_adj != 0:
+                    log_odds = np.log(win_prob / (1 - win_prob)) + total_adj
+                    win_prob = 1 / (1 + np.exp(-log_odds))
+                    loss_prob = 1 - win_prob
+
                 # Display Results
                 st.markdown("### 🏆 Prediction Results")
+
+                if total_adj > 0.01:
+                    st.caption(f"Conditions favor batting team (+{total_adj:.2f} adjustment)")
+                elif total_adj < -0.01:
+                    st.caption(f"Conditions favor bowling team ({total_adj:.2f} adjustment)")
 
                 st.markdown(f'<div class="result-text">{batting_team}</div>', unsafe_allow_html=True)
                 st.progress(win_prob, text=f"{round(win_prob * 100, 1)}%")

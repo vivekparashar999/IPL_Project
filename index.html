@@ -149,6 +149,74 @@
         <div class="overs-note">Overs: 0-20 | Balls in current over: 0-5 | Example: 10 overs 3 balls = 10.3</div>
     </div>
 
+    <div class="card" style="margin-top:12px">
+        <div class="card-label">Pitch & Conditions <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text3)">optional - adjusts prediction</span></div>
+        <div class="row2">
+            <div class="fg">
+                <label>Pitch Type</label>
+                <select id="pitch">
+                    <option value="0.15">Flat (Batting)</option>
+                    <option value="0" selected>Balanced</option>
+                    <option value="-0.20">Turning (Spin)</option>
+                    <option value="-0.18">Seaming (Pace)</option>
+                    <option value="-0.25">Cracked</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Pitch Wear</label>
+                <select id="wear">
+                    <option value="0" selected>Fresh (1st match)</option>
+                    <option value="-0.10">Used (2-3 matches)</option>
+                    <option value="-0.18">Worn (4+ matches)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+            <div class="fg">
+                <label>Dew Factor</label>
+                <select id="dew">
+                    <option value="0" selected>None</option>
+                    <option value="0.12">Light Dew</option>
+                    <option value="0.25">Heavy Dew</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Match Type</label>
+                <select id="matchType">
+                    <option value="0" selected>Day</option>
+                    <option value="0.05">Day-Night</option>
+                    <option value="0.10">Night</option>
+                </select>
+            </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+            <div class="fg">
+                <label>Humidity</label>
+                <select id="humidity">
+                    <option value="-0.05">Low (&lt;40%)</option>
+                    <option value="0" selected>Moderate (40-70%)</option>
+                    <option value="0.08">High (&gt;70%)</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Temperature</label>
+                <select id="temp">
+                    <option value="-0.05">Cool (&lt;25°C)</option>
+                    <option value="0" selected>Moderate (25-35°C)</option>
+                    <option value="0.05">Hot (&gt;35°C)</option>
+                </select>
+            </div>
+        </div>
+        <div class="fg" style="margin-top:12px">
+            <label>Toss Won By</label>
+            <select id="toss">
+                <option value="0" selected>Not Specified</option>
+                <option value="0.12">Batting Team</option>
+                <option value="-0.05">Bowling Team</option>
+            </select>
+        </div>
+    </div>
+
     <div class="alert" id="alert"></div>
 
     <button class="btn" id="predictBtn" onclick="handlePredict()">Predict Winner</button>
@@ -156,6 +224,7 @@
     <div class="results" id="results">
         <div class="card">
             <div class="verdict" id="verdict"></div>
+            <div id="condNote" style="text-align:center;font-size:12px;color:var(--text3);margin:-16px 0 20px;display:none"></div>
             <div class="prob-row">
                 <div class="prob-badge" id="rBatBadge"></div>
                 <div class="prob-info">
@@ -347,10 +416,27 @@ function handlePredict(){
     if(score>=target)return showAlert(bat+' have already won the match!','ok');
     if(wk>=10)return showAlert(bat+' are all out. '+bowl+' win!','err');
 
+    // Sum conditions adjustments (log-odds space)
+    const adj=['pitch','wear','dew','matchType','humidity','temp','toss']
+        .reduce((s,id)=>s+(parseFloat(document.getElementById(id).value)||0),0);
+
     const btn=document.getElementById('predictBtn');
     btn.textContent='Calculating...';btn.disabled=true;
     setTimeout(()=>{
         const r=predict(bat,bowl,city,target,score,ov,bl,wk);
+
+        // Apply conditions adjustment in log-odds space
+        if(adj!==0){
+            const lo=Math.log(r.w/(1-r.w))+adj;
+            r.w=1/(1+Math.exp(-lo));r.l=1-r.w;
+        }
+
+        // Show conditions note
+        const cn=document.getElementById('condNote');
+        if(adj>0.01){cn.textContent='Conditions favor batting team (+'+Math.abs(adj).toFixed(2)+' adjustment)';cn.style.display='block';cn.style.color='var(--green)'}
+        else if(adj<-0.01){cn.textContent='Conditions favor bowling team ('+adj.toFixed(2)+' adjustment)';cn.style.display='block';cn.style.color='var(--red)'}
+        else{cn.style.display='none'}
+
         showResults(bat,bowl,r);
         btn.textContent='Predict Winner';btn.disabled=false;
     },350);
