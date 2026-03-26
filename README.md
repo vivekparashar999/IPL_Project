@@ -2,7 +2,7 @@
 
 Predict IPL match outcomes in real-time using a logistic regression model trained on historical IPL data (2008-2024). Enter the current match situation during a second innings chase and get instant win/loss probabilities.
 
-**Live Demo:** [https://vivekparashar999.github.io/IPL_Project](https://vivekparashar999.github.io/IPL_Project)
+**Live Demo:** [https://hardikdewra.github.io/IPL_Project](https://hardikdewra.github.io/IPL_Project)
 
 ## Features
 
