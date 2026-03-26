@@ -213,7 +213,43 @@ const T={
 };
 const TN=Object.keys(T).sort();
 
-const CITIES=["Ahmedabad","Bengaluru","Bloemfontein","Cape Town","Centurion","Chandigarh","Chennai","Cuttack","Delhi","Dharamsala","Dubai","Durban","East London","Guwahati","Hyderabad","Indore","Jaipur","Johannesburg","Kimberley","Kolkata","Lucknow","Mohali","Mumbai","Nagpur","Navi Mumbai","Port Elizabeth","Pune","Raipur","Ranchi","Sharjah","Visakhapatnam"];
+const CITIES={
+'India':[
+{l:'Ahmedabad - Narendra Modi Stadium, Gujarat',v:'Ahmedabad'},
+{l:'Bengaluru - M. Chinnaswamy Stadium, Karnataka',v:'Bengaluru'},
+{l:'Chennai - M.A. Chidambaram Stadium, Tamil Nadu',v:'Chennai'},
+{l:'Cuttack - Barabati Stadium, Odisha',v:'Cuttack'},
+{l:'Delhi - Arun Jaitley Stadium',v:'Delhi'},
+{l:'Dharamsala - HPCA Stadium, Himachal Pradesh',v:'Dharamsala'},
+{l:'Guwahati - Barsapara Stadium, Assam',v:'Guwahati'},
+{l:'Hyderabad - Rajiv Gandhi Intl. Stadium, Telangana',v:'Hyderabad'},
+{l:'Indore - Holkar Stadium, Madhya Pradesh',v:'Indore'},
+{l:'Jaipur - Sawai Mansingh Stadium, Rajasthan',v:'Jaipur'},
+{l:'Kolkata - Eden Gardens, West Bengal',v:'Kolkata'},
+{l:'Lucknow - Ekana Stadium, Uttar Pradesh',v:'Lucknow'},
+{l:'Mohali - I.S. Bindra PCA Stadium, Punjab',v:'Mohali'},
+{l:'Mumbai - Wankhede Stadium, Maharashtra',v:'Mumbai'},
+{l:'Nagpur - VCA Stadium, Maharashtra',v:'Nagpur'},
+{l:'Navi Mumbai - DY Patil Stadium, Maharashtra',v:'Navi Mumbai'},
+{l:'Pune - MCA Stadium, Maharashtra',v:'Pune'},
+{l:'Raipur - Shaheed Veer Narayan Singh Intl. Stadium, Chhattisgarh',v:'Raipur'},
+{l:'Ranchi - JSCA Intl. Stadium, Jharkhand',v:'Ranchi'},
+{l:'Visakhapatnam - ACA-VDCA Stadium, Andhra Pradesh',v:'Visakhapatnam'}
+],
+'UAE':[
+{l:'Dubai - Dubai Intl. Cricket Stadium',v:'Dubai'},
+{l:'Sharjah - Sharjah Cricket Stadium',v:'Sharjah'}
+],
+'South Africa':[
+{l:'Bloemfontein - OUTsurance Oval',v:'Bloemfontein'},
+{l:'Cape Town - Newlands',v:'Cape Town'},
+{l:'Centurion - SuperSport Park',v:'Centurion'},
+{l:'Durban - Kingsmead',v:'Durban'},
+{l:'East London - Buffalo Park',v:'East London'},
+{l:'Johannesburg - Wanderers Stadium',v:'Johannesburg'},
+{l:'Kimberley - De Beers Diamond Oval',v:'Kimberley'},
+{l:"Port Elizabeth - St George's Park",v:'Port Elizabeth'}
+]};
 
 // ===== STATE =====
 let sel={bat:null,bowl:null};
@@ -222,7 +258,12 @@ let sel={bat:null,bowl:null};
 document.addEventListener('DOMContentLoaded',()=>{
     buildPickers();
     const cs=document.getElementById('city');
-    CITIES.forEach(c=>cs.add(new Option(c,c)));
+    Object.entries(CITIES).forEach(([region,cities])=>{
+        const g=document.createElement('optgroup');
+        g.label=region;
+        cities.forEach(c=>{const o=new Option(c.l,c.v);g.appendChild(o)});
+        cs.appendChild(g);
+    });
 });
 
 function buildPickers(){

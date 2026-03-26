@@ -47,16 +47,43 @@ teams = [
     'Sunrisers Hyderabad'
 ]
 
-# All cities from model training data (32 venues)
-cities = [
-    'Ahmedabad', 'Bengaluru', 'Bloemfontein', 'Cape Town',
-    'Centurion', 'Chandigarh', 'Chennai', 'Cuttack', 'Delhi',
-    'Dharamsala', 'Dubai', 'Durban', 'East London', 'Guwahati',
-    'Hyderabad', 'Indore', 'Jaipur', 'Johannesburg', 'Kimberley',
-    'Kolkata', 'Lucknow', 'Mohali', 'Mumbai', 'Nagpur',
-    'Navi Mumbai', 'Port Elizabeth', 'Pune', 'Raipur', 'Ranchi',
-    'Sharjah', 'Visakhapatnam'
-]
+# All venues from model training data (30 venues, with stadium names)
+# Chandigarh removed - same stadium as Mohali (I.S. Bindra PCA Stadium)
+venue_map = {
+    # India
+    'Ahmedabad - Narendra Modi Stadium, Gujarat': 'Ahmedabad',
+    'Bengaluru - M. Chinnaswamy Stadium, Karnataka': 'Bengaluru',
+    'Chennai - M.A. Chidambaram Stadium, Tamil Nadu': 'Chennai',
+    'Cuttack - Barabati Stadium, Odisha': 'Cuttack',
+    'Delhi - Arun Jaitley Stadium': 'Delhi',
+    'Dharamsala - HPCA Stadium, Himachal Pradesh': 'Dharamsala',
+    'Guwahati - Barsapara Stadium, Assam': 'Guwahati',
+    'Hyderabad - Rajiv Gandhi Intl. Stadium, Telangana': 'Hyderabad',
+    'Indore - Holkar Stadium, Madhya Pradesh': 'Indore',
+    'Jaipur - Sawai Mansingh Stadium, Rajasthan': 'Jaipur',
+    'Kolkata - Eden Gardens, West Bengal': 'Kolkata',
+    'Lucknow - Ekana Stadium, Uttar Pradesh': 'Lucknow',
+    'Mohali - I.S. Bindra PCA Stadium, Punjab': 'Mohali',
+    'Mumbai - Wankhede Stadium, Maharashtra': 'Mumbai',
+    'Nagpur - VCA Stadium, Maharashtra': 'Nagpur',
+    'Navi Mumbai - DY Patil Stadium, Maharashtra': 'Navi Mumbai',
+    'Pune - MCA Stadium, Maharashtra': 'Pune',
+    'Raipur - Shaheed Veer Narayan Singh Intl. Stadium, Chhattisgarh': 'Raipur',
+    'Ranchi - JSCA Intl. Stadium, Jharkhand': 'Ranchi',
+    'Visakhapatnam - ACA-VDCA Stadium, Andhra Pradesh': 'Visakhapatnam',
+    # UAE
+    'Dubai - Dubai Intl. Cricket Stadium': 'Dubai',
+    'Sharjah - Sharjah Cricket Stadium': 'Sharjah',
+    # South Africa
+    'Bloemfontein - OUTsurance Oval': 'Bloemfontein',
+    'Cape Town - Newlands': 'Cape Town',
+    'Centurion - SuperSport Park': 'Centurion',
+    'Durban - Kingsmead': 'Durban',
+    'East London - Buffalo Park': 'East London',
+    'Johannesburg - Wanderers Stadium': 'Johannesburg',
+    'Kimberley - De Beers Diamond Oval': 'Kimberley',
+    "Port Elizabeth - St George's Park": 'Port Elizabeth',
+}
 
 # User Inputs
 st.markdown("### 🏟️ Match Details")
@@ -66,7 +93,8 @@ with col1:
 with col2:
     bowling_team = st.selectbox('🥎 Bowling Team', sorted(teams))
 
-city = st.selectbox('📍 Host City', sorted(cities))
+city_label = st.selectbox('📍 Venue', list(venue_map.keys()))
+city = venue_map[city_label]
 
 st.markdown("---")
 
