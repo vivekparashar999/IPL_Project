@@ -49,7 +49,7 @@ teams = [
 
 # All cities from model training data (32 venues)
 cities = [
-    'Ahmedabad', 'Bangalore', 'Bengaluru', 'Bloemfontein', 'Cape Town',
+    'Ahmedabad', 'Bengaluru', 'Bloemfontein', 'Cape Town',
     'Centurion', 'Chandigarh', 'Chennai', 'Cuttack', 'Delhi',
     'Dharamsala', 'Dubai', 'Durban', 'East London', 'Guwahati',
     'Hyderabad', 'Indore', 'Jaipur', 'Johannesburg', 'Kimberley',
