@@ -159,7 +159,7 @@ select:focus{border-color:var(--pu2)}
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <div class="live-dot"><span class="d"></span>LIVE</div>
-    <div class="refresh-info">Refresh in <span id="cd">30</span>s</div>
+    <div class="refresh-info">Refresh in <span id="cd">10</span>s</div>
   </div>
 </div>
 
@@ -195,7 +195,7 @@ const TEAM_ABBR = {
 
 const CORS = 'https://api.allorigins.win/raw?url=';
 
-let currentId = null, timer = null, secs = 30;
+let currentId = null, timer = null, secs = 10;
 
 // ── Fetch with CORS proxy ─────────────────────────────────────────────────────
 async function fetchPage(url) {
@@ -226,7 +226,18 @@ async function loadMatches() {
     const sel = document.getElementById('matchSel');
     if (matches.length === 0) {
       sel.innerHTML = '<option value="">No live IPL matches right now</option>';
-      document.getElementById('main').innerHTML = '<div class="ld" style="padding:30px">No IPL 2026 matches live right now.<br><span style="font-size:12px;margin-top:8px;display:block">Check back when a match starts — page auto-refreshes every 30s.</span></div>';
+      // Try to show last match from localStorage
+      try {
+        const saved = localStorage.getItem('lastMatchData');
+        if (saved) {
+          const {match, preds, ts} = JSON.parse(saved);
+          const ago = Math.round((Date.now()-ts)/60000);
+          const agoStr = ago < 60 ? `${ago}m ago` : `${Math.round(ago/60)}h ago`;
+          render(match, preds, true, `No match live right now — showing last match data (${agoStr})`);
+          return;
+        }
+      } catch(_) {}
+      document.getElementById('main').innerHTML = '<div class="ld" style="padding:30px">No IPL 2026 matches live right now.<br><span style="font-size:12px;margin-top:8px;display:block">Check back when a match starts — page auto-refreshes every 10s.</span></div>';
       return;
     }
     sel.innerHTML = matches.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
@@ -246,8 +257,10 @@ async function loadMatch(id) {
     const text = await fetchPage(`https://www.cricbuzz.com/live-cricket-scores/${id}`);
     const match = parseMatch(id, text);
     const preds = makePredictions(match);
-    render(match, preds);
+    render(match, preds, false);
     document.getElementById('ebanner').style.display = 'none';
+    // Save last match to localStorage for offline/no-match fallback
+    try { localStorage.setItem('lastMatchId', id); localStorage.setItem('lastMatchData', JSON.stringify({match, preds, ts: Date.now()})); } catch(_) {}
   } catch(e) {
     document.getElementById('ebanner').style.display = 'block';
     console.error(e);
@@ -469,9 +482,12 @@ const NB_CLR={'dot':'var(--t3)','1':'var(--bl2)','2':'var(--bl2)','3':'var(--bl2
 const MEDALS=['🥇','🥈','🥉','4️⃣','5️⃣'];
 const BCLS={'0':'b0','1':'b1','2':'b2','3':'b3','4':'b4','6':'b6','W':'bW','wd':'bwd','nb':'bnb'};
 
-function render(m, p) {
+function render(m, p, isLast=false, lastBanner='') {
   const overs=`${m.oversComp}.${m.ballsIn}`;
   let html='';
+  if (isLast && lastBanner) {
+    html+=`<div style="background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.3);border-radius:9px;padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--yw2)">⏱️ ${lastBanner}</div>`;
+  }
 
   // Match header
   html+=`<div class="mhdr">
@@ -484,7 +500,7 @@ function render(m, p) {
         ${m.target?`<div class="sc">${m.target-1}<small>/10</small></div><div class="ov">Target: ${m.target}</div>`:'<div class="sc" style="font-size:20px;color:var(--t3)">—</div><div class="ov">1st Innings</div>'}
       </div>
     </div>
-    <div class="mstatus">Live — IPL 2026</div>
+    <div class="mstatus">${isLast ? '📁 Last Match — IPL 2026' : 'Live — IPL 2026'}</div>
     <div class="stats-row">
       <div class="sp"><span class="sl">CRR</span><span class="sv">${p.crr}</span></div>
       ${m.target?`<div class="sp"><span class="sl">RRR</span><span class="sv">${p.rrr}</span></div><div class="sp"><span class="sl">Need</span><span class="sv">${p.runsNeeded} off ${p.bl}</span></div>`:''}
@@ -553,7 +569,7 @@ function render(m, p) {
 
 // ── Timer ─────────────────────────────────────────────────────────────────────
 function resetTimer() {
-  clearInterval(timer); secs=30;
+  clearInterval(timer); secs=10;
   document.getElementById('cd').textContent=secs;
   timer=setInterval(()=>{
     secs--;
