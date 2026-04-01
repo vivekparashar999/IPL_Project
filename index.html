@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Win Predictor - Real-time Match Probability</title>
+    <meta name="description" content="Predict IPL match outcomes in real-time using machine learning. Select teams, enter match situation, get win probabilities instantly.">
+    <meta name="theme-color" content="#09090b">
+    <meta property="og:title" content="IPL Win Predictor">
+    <meta property="og:description" content="Real-time IPL match win probability predictor powered by ML">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127951;</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --bg:#09090b;--card:#18181b;--border:#27272a;--border2:#3f3f46;
+            --text:#fafafa;--text2:#a1a1aa;--text3:#71717a;
+            --accent:#6366f1;--green:#22c55e;--red:#ef4444;--yellow:#eab308;
+        }
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+        .container{max-width:640px;margin:0 auto;padding:40px 16px 60px}
+
+        /* Header */
+        .header{text-align:center;margin-bottom:36px}
+        .header h1{font-size:38px;font-weight:900;letter-spacing:-1.5px}
+        .header h1 span{color:var(--accent)}
+        .header p{color:var(--text2);font-size:15px;margin-top:4px}
+
+        /* Card */
+        .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:12px}
+        .card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:16px}
+
+        /* Team Picker */
+        .team-picker{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+        .team-opt{cursor:pointer;padding:3px;border-radius:50%;-webkit-tap-highlight-color:transparent}
+        .team-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
+        .team-opt-badge{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;letter-spacing:.5px;border:2.5px solid transparent;transition:transform .15s,border-color .15s}
+        .team-opt:hover .team-opt-badge{transform:scale(1.1)}
+        .team-opt.active .team-opt-badge{border-color:var(--text);transform:scale(1.1)}
+        .team-opt.disabled{opacity:.2;pointer-events:none}
+        .selected-team{text-align:center;font-size:14px;font-weight:600;color:var(--text2);margin-top:14px;min-height:21px;transition:color .2s}
+
+        /* VS */
+        .vs{display:flex;align-items:center;gap:12px;margin:4px 0;padding:0 24px}
+        .vs::before,.vs::after{content:'';flex:1;height:1px;background:var(--border)}
+        .vs span{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:2px}
+
+        /* Form */
+        .fg{margin-bottom:12px}
+        .fg:last-child{margin-bottom:0}
+        .fg label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+        select,input[type="number"]{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
+        select:focus,input[type="number"]:focus{border-color:var(--accent)}
+        select{appearance:none;cursor:pointer;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+        input[type="number"]{-moz-appearance:textfield}
+        input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+        .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .row2 .fg{margin-bottom:0}
+        .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+        .row3 .fg{margin-bottom:0}
+        .overs-note{font-size:11px;color:var(--text3);margin-top:8px;text-align:center}
+
+        /* Button */
+        .btn{display:block;width:100%;padding:14px;margin:16px 0;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.3px;transition:opacity .15s}
+        .btn:hover{opacity:.88}
+        .btn:disabled{opacity:.5;cursor:not-allowed}
+
+        /* Alert */
+        .alert{display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;text-align:center;margin-bottom:12px}
+        .alert.show{display:block;animation:fadeIn .2s ease-out}
+        .alert.err{background:#ef444418;color:var(--red);border:1px solid #ef444425}
+        .alert.ok{background:#22c55e18;color:var(--green);border:1px solid #22c55e25}
+
+        /* Results */
+        .results{display:none}
+        .results.show{display:block;animation:slideUp .4s ease-out}
+        @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .verdict{text-align:center;font-size:16px;font-weight:700;margin-bottom:24px;color:var(--text2)}
+        .prob-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+        .prob-row:last-of-type{margin-bottom:0}
+        .prob-badge{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;letter-spacing:.5px}
+        .prob-info{flex:1;min-width:0}
+        .prob-name{font-size:13px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .prob-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+        .prob-fill{height:100%;border-radius:4px;width:0;transition:width 1s cubic-bezier(.22,.61,.36,1)}
+        .prob-pct{font-size:24px;font-weight:800;min-width:76px;text-align:right;font-variant-numeric:tabular-nums}
+        .winner-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle}
+
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+        .stat{text-align:center;padding:8px 2px}
+        .stat-n{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+        .stat-l{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+        /* Footer */
+        .footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);line-height:1.8}
+        .footer a{color:var(--text2);text-decoration:none}
+        .footer a:hover{color:var(--text)}
+
+        /* Responsive */
+        @media(max-width:480px){
+            .header h1{font-size:28px}
+            .team-opt-badge{width:44px;height:44px;font-size:11px}
+            .stats{grid-template-columns:repeat(3,1fr)}
+            .prob-pct{font-size:20px;min-width:60px}
+            .card{padding:18px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <h1><span>IPL</span> Win Predictor</h1>
+        <p>Match probability powered by machine learning</p>
+    </header>
+
+    <div class="card">
+        <div class="card-label">Batting Team</div>
+        <div class="team-picker" id="batPicker"></div>
+        <div class="selected-team" id="batSel">Select a team</div>
+    </div>
+
+    <div class="vs"><span>VS</span></div>
+
+    <div class="card">
+        <div class="card-label">Bowling Team</div>
+        <div class="team-picker" id="bowlPicker"></div>
+        <div class="selected-team" id="bowlSel">Select a team</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+        <div class="card-label">Match Situation</div>
+        <div class="fg">
+            <label>Host City</label>
+            <select id="city"><option value="">Select city</option></select>
+        </div>
+        <div class="row2" style="margin-top:12px">
+            <div class="fg"><label>Target Score</label><input type="number" id="target" min="1" placeholder="e.g. 180"></div>
+            <div class="fg"><label>Current Score</label><input type="number" id="score" min="0" placeholder="e.g. 95"></div>
+        </div>
+        <div class="row3" style="margin-top:12px">
+            <div class="fg"><label>Overs</label><input type="number" id="overs" min="0" max="20" value="0"></div>
+            <div class="fg"><label>Balls</label><input type="number" id="balls" min="0" max="5" value="0"></div>
+            <div class="fg"><label>Wickets</label><input type="number" id="wickets" min="0" max="10" value="0"></div>
+        </div>
+        <div class="overs-note">Overs: 0-20 | Balls in current over: 0-5 | Example: 10 overs 3 balls = 10.3</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+        <div class="card-label">Pitch & Conditions <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--text3)">optional - adjusts prediction</span></div>
+        <div class="row2">
+            <div class="fg">
+                <label>Pitch Type</label>
+                <select id="pitch">
+                    <option value="0.15">Flat (Batting)</option>
+                    <option value="0" selected>Balanced</option>
+                    <option value="-0.20">Turning (Spin)</option>
+                    <option value="-0.18">Seaming (Pace)</option>
+                    <option value="-0.25">Cracked</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Pitch Wear</label>
+                <select id="wear">
+                    <option value="0" selected>Fresh (1st match)</option>
+                    <option value="-0.10">Used (2-3 matches)</option>
+                    <option value="-0.18">Worn (4+ matches)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+            <div class="fg">
+                <label>Dew Factor</label>
+                <select id="dew">
+                    <option value="0" selected>None</option>
+                    <option value="0.12">Light Dew</option>
+                    <option value="0.25">Heavy Dew</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Match Type</label>
+                <select id="matchType">
+                    <option value="0" selected>Day</option>
+                    <option value="0.05">Day-Night</option>
+                    <option value="0.10">Night</option>
+                </select>
+            </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+            <div class="fg">
+                <label>Humidity</label>
+                <select id="humidity">
+                    <option value="-0.05">Low (&lt;40%)</option>
+                    <option value="0" selected>Moderate (40-70%)</option>
+                    <option value="0.08">High (&gt;70%)</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Temperature</label>
+                <select id="temp">
+                    <option value="-0.05">Cool (&lt;25°C)</option>
+                    <option value="0" selected>Moderate (25-35°C)</option>
+                    <option value="0.05">Hot (&gt;35°C)</option>
+                </select>
+            </div>
+        </div>
+        <div class="fg" style="margin-top:12px">
+            <label>Toss Won By</label>
+            <select id="toss">
+                <option value="0" selected>Not Specified</option>
+                <option value="0.12">Batting Team</option>
+                <option value="-0.05">Bowling Team</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="alert" id="alert"></div>
+
+    <button class="btn" id="predictBtn" onclick="handlePredict()">Predict Winner</button>
+
+    <div class="results" id="results">
+        <div class="card">
+            <div class="verdict" id="verdict"></div>
+            <div id="condNote" style="text-align:center;font-size:12px;color:var(--text3);margin:-16px 0 20px;display:none"></div>
+            <div class="prob-row">
+                <div class="prob-badge" id="rBatBadge"></div>
+                <div class="prob-info">
+                    <div class="prob-name" id="rBatName"></div>
+                    <div class="prob-track"><div class="prob-fill" id="batFill"></div></div>
+                </div>
+                <div class="prob-pct" id="batPct">0.0%</div>
+            </div>
+            <div class="prob-row">
+                <div class="prob-badge" id="rBowlBadge"></div>
+                <div class="prob-info">
+                    <div class="prob-name" id="rBowlName"></div>
+                    <div class="prob-track"><div class="prob-fill" id="bowlFill"></div></div>
+                </div>
+                <div class="prob-pct" id="bowlPct">0.0%</div>
+            </div>
+            <div class="stats">
+                <div class="stat"><div class="stat-n" id="sCRR">-</div><div class="stat-l">CRR</div></div>
+                <div class="stat"><div class="stat-n" id="sRRR">-</div><div class="stat-l">RRR</div></div>
+                <div class="stat"><div class="stat-n" id="sRuns">-</div><div class="stat-l">Runs</div></div>
+                <div class="stat"><div class="stat-n" id="sBalls">-</div><div class="stat-l">Balls</div></div>
+                <div class="stat"><div class="stat-n" id="sWkts">-</div><div class="stat-l">Wkts</div></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Built by <a href="https://github.com/HardikDewra" target="_blank">Hardik</a> & <a href="https://github.com/vivekparashar999" target="_blank">Vivek</a></p>
+        <p>Predictions based on historical IPL data - for entertainment only</p>
+    </footer>
+</div>
+
+<script>
+// ===== MODEL =====
+const M={
+coef:[-2.815197,1.550686,1.311943,-0.059995,0.072373,-0.463804,-1.930067,-0.492477,-1.374589,0.600475,-1.123901,-0.654691,-0.670908,-0.642116,-0.067274,-0.472585,-0.914431,0.018656,-1.245483,0.272660,-0.565913,0.118073,-0.087779,-0.261688,-0.324488,-1.928884,-0.703228,0.150745,-0.396289,-0.132598,0.484727,-0.410403,0.106647,0.769433,0.337491,-0.651429,-2.420131,0.174121,0.185637,-0.858778,-0.584368,-0.034187,0.414022,-0.016628,-0.767124,-0.781147,-0.139885,0.266010,2.388432,0.605488,-0.176636,0.639624,0.505825,0.294313,0.398612,0.411510,-0.954335,0.033063,0.929657,-0.193705,1.039716,0.807550,-0.376713,-0.057252],
+intercept:0.889666,
+cols:["runs_left","balls_left","wicket_left","total_runs_x","crr","rrr","batting_team_Deccan Chargers","batting_team_Delhi Capitals","batting_team_Delhi Daredevils","batting_team_Gujarat Titans","batting_team_Kings XI Punjab","batting_team_Kolkata Knight Riders","batting_team_Lucknow Super Giants","batting_team_Mumbai Indians","batting_team_Punjab Kings","batting_team_Rajasthan Royals","batting_team_Royal Challengers Bangalore","batting_team_Royal Challengers Bengaluru","batting_team_Sunrisers Hyderabad","bowling_team_Deccan Chargers","bowling_team_Delhi Capitals","bowling_team_Delhi Daredevils","bowling_team_Gujarat Titans","bowling_team_Kings XI Punjab","bowling_team_Kolkata Knight Riders","bowling_team_Lucknow Super Giants","bowling_team_Mumbai Indians","bowling_team_Punjab Kings","bowling_team_Rajasthan Royals","bowling_team_Royal Challengers Bangalore","bowling_team_Royal Challengers Bengaluru","bowling_team_Sunrisers Hyderabad","city_Ahmedabad","city_Bangalore","city_Bengaluru","city_Bloemfontein","city_Cape Town","city_Centurion","city_Chandigarh","city_Chennai","city_Cuttack","city_Delhi","city_Dharamsala","city_Dubai","city_Durban","city_East London","city_Guwahati","city_Hyderabad","city_Indore","city_Jaipur","city_Johannesburg","city_Kimberley","city_Kolkata","city_Lucknow","city_Mohali","city_Mumbai","city_Nagpur","city_Navi Mumbai","city_Port Elizabeth","city_Pune","city_Raipur","city_Ranchi","city_Sharjah","city_Visakhapatnam"],
+mean:[94.000822,63.009067,7.520243,168.526926,7.178786,10.045912],
+scale:[50.883406,33.282704,2.154377,30.904908,2.377393,13.841405]
+};
+
+// ===== TEAMS =====
+const T={
+'Chennai Super Kings':{a:'CSK',c:'#f9a825',t:'#000',m:null},
+'Delhi Capitals':{a:'DC',c:'#17a2d8',t:'#fff',m:'Delhi Capitals'},
+'Gujarat Titans':{a:'GT',c:'#6bc5d2',t:'#000',m:'Gujarat Titans'},
+'Kolkata Knight Riders':{a:'KKR',c:'#7b5ea7',t:'#fff',m:'Kolkata Knight Riders'},
+'Lucknow Super Giants':{a:'LSG',c:'#d64375',t:'#fff',m:'Lucknow Super Giants'},
+'Mumbai Indians':{a:'MI',c:'#1a73c4',t:'#fff',m:'Mumbai Indians'},
+'Punjab Kings':{a:'PBKS',c:'#dd1f2d',t:'#fff',m:'Punjab Kings'},
+'Rajasthan Royals':{a:'RR',c:'#ea73a0',t:'#1a237e',m:'Rajasthan Royals'},
+'Royal Challengers Bengaluru':{a:'RCB',c:'#d4213d',t:'#fff',m:'Royal Challengers Bengaluru'},
+'Sunrisers Hyderabad':{a:'SRH',c:'#f26522',t:'#fff',m:'Sunrisers Hyderabad'}
+};
+const TN=Object.keys(T).sort();
+
+const CITIES={
+'India':[
+{l:'Ahmedabad - Narendra Modi Stadium, Gujarat',v:'Ahmedabad'},
+{l:'Bengaluru - M. Chinnaswamy Stadium, Karnataka',v:'Bengaluru'},
+{l:'Chennai - M.A. Chidambaram Stadium, Tamil Nadu',v:'Chennai'},
+{l:'Cuttack - Barabati Stadium, Odisha',v:'Cuttack'},
+{l:'Delhi - Arun Jaitley Stadium',v:'Delhi'},
+{l:'Dharamsala - HPCA Stadium, Himachal Pradesh',v:'Dharamsala'},
+{l:'Guwahati - Barsapara Stadium, Assam',v:'Guwahati'},
+{l:'Hyderabad - Rajiv Gandhi Intl. Stadium, Telangana',v:'Hyderabad'},
+{l:'Indore - Holkar Stadium, Madhya Pradesh',v:'Indore'},
+{l:'Jaipur - Sawai Mansingh Stadium, Rajasthan',v:'Jaipur'},
+{l:'Kolkata - Eden Gardens, West Bengal',v:'Kolkata'},
+{l:'Lucknow - Ekana Stadium, Uttar Pradesh',v:'Lucknow'},
+{l:'Mohali - I.S. Bindra PCA Stadium, Punjab',v:'Mohali'},
+{l:'Mumbai - Wankhede Stadium, Maharashtra',v:'Mumbai'},
+{l:'Nagpur - VCA Stadium, Maharashtra',v:'Nagpur'},
+{l:'Navi Mumbai - DY Patil Stadium, Maharashtra',v:'Navi Mumbai'},
+{l:'Pune - MCA Stadium, Maharashtra',v:'Pune'},
+{l:'Raipur - Shaheed Veer Narayan Singh Intl. Stadium, Chhattisgarh',v:'Raipur'},
+{l:'Ranchi - JSCA Intl. Stadium, Jharkhand',v:'Ranchi'},
+{l:'Visakhapatnam - ACA-VDCA Stadium, Andhra Pradesh',v:'Visakhapatnam'}
+],
+'UAE':[
+{l:'Dubai - Dubai Intl. Cricket Stadium',v:'Dubai'},
+{l:'Sharjah - Sharjah Cricket Stadium',v:'Sharjah'}
+],
+'South Africa':[
+{l:'Bloemfontein - OUTsurance Oval',v:'Bloemfontein'},
+{l:'Cape Town - Newlands',v:'Cape Town'},
+{l:'Centurion - SuperSport Park',v:'Centurion'},
+{l:'Durban - Kingsmead',v:'Durban'},
+{l:'East London - Buffalo Park',v:'East London'},
+{l:'Johannesburg - Wanderers Stadium',v:'Johannesburg'},
+{l:'Kimberley - De Beers Diamond Oval',v:'Kimberley'},
+{l:"Port Elizabeth - St George's Park",v:'Port Elizabeth'}
+]};
+
+// ===== STATE =====
+let sel={bat:null,bowl:null};
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{
+    buildPickers();
+    const cs=document.getElementById('city');
+    Object.entries(CITIES).forEach(([region,cities])=>{
+        const g=document.createElement('optgroup');
+        g.label=region;
+        cities.forEach(c=>{const o=new Option(c.l,c.v);g.appendChild(o)});
+        cs.appendChild(g);
+    });
+});
+
+function buildPickers(){
+    ['bat','bowl'].forEach(type=>{
+        const el=document.getElementById(type+'Picker');
+        TN.forEach(name=>{
+            const td=T[name];
+            const d=document.createElement('div');
+            d.className='team-opt';
+            d.dataset.team=name;
+            d.tabIndex=0;
+            d.innerHTML='<div class="team-opt-badge" style="background:'+td.c+';color:'+td.t+'">'+td.a+'</div>';
+            d.onclick=()=>pick(type,name);
+            d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(type,name)}};
+            el.appendChild(d);
+        });
+    });
+}
+
+function pick(type,name){
+    sel[type]=name;
+    const cont=document.getElementById(type+'Picker');
+    cont.querySelectorAll('.team-opt').forEach(e=>e.classList.toggle('active',e.dataset.team===name));
+    const label=document.getElementById(type+'Sel');
+    label.textContent=name;
+    label.style.color=T[name].c;
+
+    const other=type==='bat'?'bowl':'bat';
+    const oc=document.getElementById(other+'Picker');
+    oc.querySelectorAll('.team-opt').forEach(e=>e.classList.toggle('disabled',e.dataset.team===name));
+    if(sel[other]===name){
+        sel[other]=null;
+        oc.querySelectorAll('.team-opt').forEach(e=>e.classList.remove('active'));
+        const ol=document.getElementById(other+'Sel');
+        ol.textContent='Select a team';
+        ol.style.color='';
+    }
+}
+
+// ===== PREDICTION =====
+function predict(bat,bowl,city,target,score,ov,bl,wk){
+    const rl=target-score,tb=ov*6+bl,bleft=120-tb,wl=10-wk;
+    const crr=tb>0?(score/tb)*6:0,rrr=bleft>0?(rl/bleft)*6:0;
+    const f=new Array(64).fill(0);
+    f[0]=rl;f[1]=bleft;f[2]=wl;f[3]=target;f[4]=crr;f[5]=rrr;
+    for(let i=0;i<6;i++)f[i]=(f[i]-M.mean[i])/M.scale[i];
+    const bm=T[bat].m,bwm=T[bowl].m;
+    if(bm){const i=M.cols.indexOf('batting_team_'+bm);if(i>-1)f[i]=1}
+    if(bwm){const i=M.cols.indexOf('bowling_team_'+bwm);if(i>-1)f[i]=1}
+    const ci=M.cols.indexOf('city_'+city);if(ci>-1)f[ci]=1;
+    let z=M.intercept;for(let i=0;i<64;i++)z+=M.coef[i]*f[i];
+    const w=1/(1+Math.exp(-z));
+    return{w,l:1-w,crr,rrr,rl,bleft,wl};
+}
+
+// ===== UI =====
+function showAlert(msg,type){
+    const e=document.getElementById('alert');
+    e.textContent=msg;e.className='alert show '+type;
+    document.getElementById('results').classList.remove('show');
+}
+function hideAlert(){document.getElementById('alert').className='alert'}
+
+function handlePredict(){
+    hideAlert();
+    const bat=sel.bat,bowl=sel.bowl,city=document.getElementById('city').value;
+    const target=parseInt(document.getElementById('target').value)||0;
+    const score=parseInt(document.getElementById('score').value)||0;
+    let ov=parseInt(document.getElementById('overs').value)||0;
+    let bl=parseInt(document.getElementById('balls').value)||0;
+    const wk=parseInt(document.getElementById('wickets').value)||0;
+
+    if(!bat||!bowl)return showAlert('Select both batting and bowling teams','err');
+    if(!city)return showAlert('Select a host city','err');
+    if(target<1)return showAlert('Enter a valid target score (minimum 1)','err');
+    bl=Math.max(0,Math.min(5,bl));ov=Math.max(0,Math.min(20,ov));
+    if(ov===20)bl=0;
+    const tb=ov*6+bl;
+    if(tb===0)return showAlert('Enter overs/balls bowled (cannot be 0.0)','err');
+    if(tb>120)return showAlert('Maximum 20 overs (120 balls) in T20','err');
+    if(score>=target)return showAlert(bat+' have already won the match!','ok');
+    if(wk>=10)return showAlert(bat+' are all out. '+bowl+' win!','err');
+
+    // Sum conditions adjustments (log-odds space)
+    const adj=['pitch','wear','dew','matchType','humidity','temp','toss']
+        .reduce((s,id)=>s+(parseFloat(document.getElementById(id).value)||0),0);
+
+    const btn=document.getElementById('predictBtn');
+    btn.textContent='Calculating...';btn.disabled=true;
+    setTimeout(()=>{
+        const r=predict(bat,bowl,city,target,score,ov,bl,wk);
+
+        // Apply conditions adjustment in log-odds space
+        if(adj!==0){
+            const lo=Math.log(r.w/(1-r.w))+adj;
+            r.w=1/(1+Math.exp(-lo));r.l=1-r.w;
+        }
+
+        // Show conditions note
+        const cn=document.getElementById('condNote');
+        if(adj>0.01){cn.textContent='Conditions favor batting team (+'+Math.abs(adj).toFixed(2)+' adjustment)';cn.style.display='block';cn.style.color='var(--green)'}
+        else if(adj<-0.01){cn.textContent='Conditions favor bowling team ('+adj.toFixed(2)+' adjustment)';cn.style.display='block';cn.style.color='var(--red)'}
+        else{cn.style.display='none'}
+
+        showResults(bat,bowl,r);
+        btn.textContent='Predict Winner';btn.disabled=false;
+    },350);
+}
+
+function showResults(bat,bowl,r){
+    const el=document.getElementById('results');
+    const bd=T[bat],bld=T[bowl];
+
+    // Verdict
+    const v=document.getElementById('verdict');
+    if(r.w>0.55){v.textContent=bat+' are favored to win';v.style.color=bd.c}
+    else if(r.l>0.55){v.textContent=bowl+' are favored to win';v.style.color=bld.c}
+    else{v.textContent="Too close to call!";v.style.color=''}
+
+    // Badges
+    setBadge('rBatBadge',bd);setBadge('rBowlBadge',bld);
+    document.getElementById('rBatName').textContent=bat;
+    document.getElementById('rBowlName').textContent=bowl;
+
+    // Reset + animate bars
+    const bf=document.getElementById('batFill'),bwf=document.getElementById('bowlFill');
+    bf.style.transition='none';bwf.style.transition='none';
+    bf.style.width='0';bwf.style.width='0';
+    bf.style.background=bd.c;bwf.style.background=bld.c;
+
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        bf.style.transition='width 1s cubic-bezier(.22,.61,.36,1)';
+        bwf.style.transition='width 1s cubic-bezier(.22,.61,.36,1)';
+        bf.style.width=(r.w*100)+'%';bwf.style.width=(r.l*100)+'%';
+    }));
+
+    countUp('batPct',r.w*100);countUp('bowlPct',r.l*100);
+
+    document.getElementById('sCRR').textContent=r.crr.toFixed(2);
+    document.getElementById('sRRR').textContent=r.rrr.toFixed(2);
+    document.getElementById('sRuns').textContent=r.rl;
+    document.getElementById('sBalls').textContent=r.bleft;
+    document.getElementById('sWkts').textContent=r.wl;
+}
+
+function setBadge(id,td){
+    const e=document.getElementById(id);
+    e.textContent=td.a;e.style.background=td.c;e.style.color=td.t;
+}
+
+function countUp(id,target){
+    const e=document.getElementById(id),s=performance.now(),d=1000;
+    function tick(now){
+        const t=Math.min((now-s)/d,1),ease=1-Math.pow(1-t,3);
+        e.textContent=(target*ease).toFixed(1)+'%';
+        if(t<1)requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
