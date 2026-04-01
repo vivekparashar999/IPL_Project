@@ -5,7 +5,7 @@ A Streamlit web app that predicts the winning probability of IPL teams during a 
 ## Features
 
 - Select batting and bowling teams from all 10 IPL franchises
-- Input match details: host city, target score, current score, overs completed, and wickets fallen
+- Input match details: host city, target score, current score, overs + balls completed, and wickets fallen
 - Real-time win probability prediction using a trained ML model
 - Visual progress bars showing win/loss probabilities
 - Displays Current Run Rate (CRR) and Required Run Rate (RRR)
@@ -26,7 +26,7 @@ A Streamlit web app that predicts the winning probability of IPL teams during a 
 
 2. Install dependencies:
    ```bash
-   pip install streamlit pandas numpy scikit-learn
+   pip install -r requirements.txt
    ```
 
 3. Run the app:
@@ -38,10 +38,11 @@ A Streamlit web app that predicts the winning probability of IPL teams during a 
 
 ```
 IPL_Project/
-├── app.py          # Streamlit application
-├── model.pkl       # Trained ML model
-├── scaler.pkl      # Feature scaler
-├── columns.pkl     # Column names for input features
+├── app.py              # Streamlit application
+├── model.pkl           # Trained ML model
+├── scaler.pkl          # Feature scaler
+├── columns.pkl         # Column names for input features
+├── requirements.txt    # Python dependencies
 └── README.md
 ```
 
