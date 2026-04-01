@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPL 2026 Live Predictor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏏</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080a;--card:#0f1117;--card2:#161b22;--b1:#21262d;--b2:#30363d;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --pu:#7c3aed;--pu2:#a855f7;--gn:#238636;--gn2:#3fb950;
+  --rd:#da3633;--rd2:#f85149;--yw:#d29922;--yw2:#e3b341;
+  --bl:#1f6feb;--bl2:#58a6ff;--or:#bd561d;--or2:#f0883e;
+}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--t1);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+.page{max-width:1100px;margin:0 auto;padding:16px 14px 60px}
+
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo h1{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.logo h1 span{color:var(--pu2)}
+.live-dot{display:flex;align-items:center;gap:5px;background:#1a0808;border:1px solid var(--rd);color:var(--rd2);font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:1px}
+.live-dot .d{width:6px;height:6px;background:var(--rd2);border-radius:50%;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.refresh-info{font-size:11px;color:var(--t3)}
+#cd{font-weight:700;color:var(--t2)}
+
+/* match select */
+.msel{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.msel label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+select{background:var(--card);color:var(--t1);border:1px solid var(--b2);border-radius:8px;padding:7px 11px;font-size:13px;font-family:inherit;flex:1;min-width:180px;outline:none;cursor:pointer}
+select:focus{border-color:var(--pu2)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--b1);border-radius:12px;padding:16px}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:5px}
+
+/* match header */
+.mhdr{background:linear-gradient(135deg,#0d0a1a,#0f1117);border:1px solid var(--b2);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.mname{font-size:12px;color:var(--t2);margin-bottom:10px}
+.scoreline{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ts .tn{font-size:12px;font-weight:600;color:var(--t2);margin-bottom:3px}
+.ts .sc{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1}
+.ts .sc small{font-size:14px;font-weight:500;color:var(--t2);margin-left:2px}
+.ts .ov{font-size:11px;color:var(--t3);margin-top:2px}
+.vsdiv{font-size:16px;font-weight:800;color:var(--t3)}
+.mstatus{font-size:12px;color:var(--yw2);font-weight:600;margin-top:8px}
+.stats-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.sp{background:var(--card2);border:1px solid var(--b1);border-radius:8px;padding:5px 12px;font-size:11px;display:flex;flex-direction:column;align-items:center}
+.sp .sl{color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.sp .sv{font-size:15px;font-weight:800;color:var(--t1);line-height:1.2}
+.balls-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.brl{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-right:4px}
+.ball{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;border:1.5px solid transparent}
+.b0{background:#161b22;color:var(--t3);border-color:var(--b1)}
+.b1,.b2,.b3{background:#0d2137;color:var(--bl2);border-color:var(--bl)}
+.b4{background:#0a2a0f;color:var(--gn2);border-color:var(--gn)}
+.b6{background:#1a0d2e;color:var(--pu2);border-color:var(--pu)}
+.bW{background:#2a0a09;color:var(--rd2);border-color:var(--rd)}
+.bwd,.bnb{background:#2a200a;color:var(--yw2);border-color:var(--yw)}
+
+/* grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:750px){.g2,.g3{grid-template-columns:1fr}}
+
+/* win prob */
+.wpc{background:linear-gradient(135deg,#0d0a1a,#0f1117);border:1px solid var(--b2)}
+.prow{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.prow:last-child{margin-bottom:0}
+.pn{display:flex;justify-content:space-between;font-size:12px;font-weight:600}
+.pn .pct{font-size:17px;font-weight:900}
+.pt{height:9px;background:var(--card2);border-radius:5px;overflow:hidden}
+.pf{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.pf-bat{background:linear-gradient(90deg,var(--pu),var(--pu2))}
+.pf-bowl{background:linear-gradient(90deg,var(--bl),var(--bl2))}
+.pvs{text-align:center;font-size:10px;color:var(--t3);font-weight:700;letter-spacing:2px;margin:4px 0}
+
+/* next ball */
+.nbg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.nbi{background:var(--card2);border:1px solid var(--b1);border-radius:9px;padding:8px 4px;text-align:center}
+.nbl{font-size:13px;font-weight:800;margin-bottom:3px}
+.nbp{font-size:15px;font-weight:900;line-height:1}
+.nbb{height:3px;background:var(--b1);border-radius:2px;margin-top:5px;overflow:hidden}
+.nbbf{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* tables */
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);padding:5px 7px;border-bottom:1px solid var(--b1);text-align:left}
+.dt td{padding:7px 7px;border-bottom:1px solid var(--b1);vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:rgba(255,255,255,.015)}
+.pname{font-weight:600;color:var(--t1)}
+.pb{background:rgba(124,58,237,.15);color:var(--pu2);border:1px solid rgba(124,58,237,.3);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700}
+.pb.g{background:rgba(35,134,54,.15);color:var(--gn2);border-color:rgba(35,134,54,.3)}
+.tg{font-size:9px;border-radius:3px;padding:1px 4px;font-weight:700}
+.tg-bat{background:#1a0d2e;color:var(--pu2)}
+.tg-bowl{background:#0d2137;color:var(--bl2)}
+.tg-out{background:#2a0a09;color:var(--rd2)}
+
+/* mom */
+.moml{display:flex;flex-direction:column;gap:6px}
+.momi{display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--b1);border-radius:9px;padding:9px 11px}
+.momi:first-child{background:linear-gradient(90deg,rgba(179,136,0,.07),var(--card2));border-color:rgba(227,179,65,.2)}
+.momr{font-size:15px;width:22px;text-align:center}
+.mominf{flex:1}
+.mominf .mn{font-weight:700;font-size:13px}
+.mominf .mt{font-size:10px;color:var(--t3)}
+.mominf .ms{font-size:10px;color:var(--t2);display:flex;gap:7px;flex-wrap:wrap;margin-top:1px}
+.momsc{font-size:18px;font-weight:900;color:var(--yw2)}
+.mombar{height:3px;background:var(--b1);border-radius:2px;margin-top:5px;overflow:hidden}
+.mombar .f{height:100%;background:linear-gradient(90deg,var(--yw),var(--yw2));border-radius:2px;transition:width .8s ease}
+
+/* proj score */
+.psr{display:flex;gap:8px}
+.psb{flex:1;text-align:center;border-radius:9px;padding:10px 6px;border:1px solid var(--b1)}
+.psb.lo{background:#1a1000;border-color:var(--or)} .psb.mid{background:#0a1a0d;border-color:var(--gn)} .psb.hi{background:#100a1a;border-color:var(--pu)}
+.psb .pv{font-size:26px;font-weight:900;line-height:1}
+.psb .pt2{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-top:3px}
+.psb.lo .pv{color:var(--or2)} .psb.mid .pv{color:var(--gn2)} .psb.hi .pv{color:var(--pu2)}
+
+/* fow */
+.fowl{display:flex;flex-wrap:wrap;gap:5px}
+.fowi{background:var(--card2);border:1px solid var(--b1);border-radius:7px;padding:4px 9px;font-size:11px}
+.fowi .fw{font-weight:800;color:var(--rd2)}
+.fowi .fsco{font-weight:600;color:var(--t1)}
+.fowi .fb{color:var(--t3)}
+
+/* commentary */
+.comml{display:flex;flex-direction:column;gap:0}
+.commi{display:flex;gap:9px;padding:7px 0;border-bottom:1px solid var(--b1)}
+.commi:last-child{border-bottom:none}
+.commb{font-size:11px;font-weight:700;color:var(--pu2);white-space:nowrap;min-width:30px}
+.commt{font-size:12px;color:var(--t2)}
+
+/* loading */
+.ld{text-align:center;padding:50px 20px;color:var(--t3)}
+.sp2{width:32px;height:32px;border:3px solid var(--b2);border-top-color:var(--pu2);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{color:var(--t3);font-size:12px;text-align:center;padding:16px}
+
+/* err banner */
+.ebanner{background:rgba(218,54,51,.1);border:1px solid rgba(248,81,73,.3);border-radius:9px;padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--rd2);display:none}
+
+.footer{text-align:center;color:var(--t3);font-size:11px;margin-top:36px;padding-top:16px;border-top:1px solid var(--b1)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="topbar">
+  <div class="logo">
+    <span style="font-size:24px">🏏</span>
+    <h1>IPL <span>2026</span> Live Predictor</h1>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="live-dot"><span class="d"></span>LIVE</div>
+    <div class="refresh-info">Refresh in <span id="cd">30</span>s</div>
+  </div>
+</div>
+
+<div class="msel">
+  <label>Match</label>
+  <select id="matchSel" onchange="loadMatch(this.value)">
+    <option>Loading live matches…</option>
+  </select>
+</div>
+
+<div class="ebanner" id="ebanner">⚠️ Could not fetch live data. Retrying…</div>
+
+<div id="main"><div class="ld"><div class="sp2"></div>Fetching live IPL 2026 data…</div></div>
+
+</div>
+<script>
+// ── Embedded ML model (logistic regression) ───────────────────────────────────
+const M = {
+  coef:[-2.815197,1.550686,1.311943,-0.059995,0.072373,-0.463804,-1.930067,-0.492477,-1.374589,0.600475,-1.123901,-0.654691,-0.670908,-0.642116,-0.067274,-0.472585,-0.914431,0.018656,-1.245483,0.272660,-0.565913,0.118073,-0.087779,-0.261688,-0.324488,-1.928884,-0.703228,0.150745,-0.396289,-0.132598,0.484727,-0.410403,0.106647,0.769433,0.337491,-0.651429,-2.420131,0.174121,0.185637,-0.858778,-0.584368,-0.034187,0.414022,-0.016628,-0.767124,-0.781147,-0.139885,0.266010,2.388432,0.605488,-0.176636,0.639624,0.505825,0.294313,0.398612,0.411510,-0.954335,0.033063,0.929657,-0.193705,1.039716,0.807550,-0.376713,-0.057252],
+  intercept:0.889666,
+  cols:["runs_left","balls_left","wicket_left","total_runs_x","crr","rrr","batting_team_Deccan Chargers","batting_team_Delhi Capitals","batting_team_Delhi Daredevils","batting_team_Gujarat Titans","batting_team_Kings XI Punjab","batting_team_Kolkata Knight Riders","batting_team_Lucknow Super Giants","batting_team_Mumbai Indians","batting_team_Punjab Kings","batting_team_Rajasthan Royals","batting_team_Royal Challengers Bangalore","batting_team_Royal Challengers Bengaluru","batting_team_Sunrisers Hyderabad","bowling_team_Deccan Chargers","bowling_team_Delhi Capitals","bowling_team_Delhi Daredevils","bowling_team_Gujarat Titans","bowling_team_Kings XI Punjab","bowling_team_Kolkata Knight Riders","bowling_team_Lucknow Super Giants","bowling_team_Mumbai Indians","bowling_team_Punjab Kings","bowling_team_Rajasthan Royals","bowling_team_Royal Challengers Bangalore","bowling_team_Royal Challengers Bengaluru","bowling_team_Sunrisers Hyderabad","city_Ahmedabad","city_Bangalore","city_Bengaluru","city_Bloemfontein","city_Cape Town","city_Centurion","city_Chandigarh","city_Chennai","city_Cuttack","city_Delhi","city_Dharamsala","city_Dubai","city_Durban","city_East London","city_Guwahati","city_Hyderabad","city_Indore","city_Jaipur","city_Johannesburg","city_Kimberley","city_Kolkata","city_Lucknow","city_Mohali","city_Mumbai","city_Nagpur","city_Navi Mumbai","city_Port Elizabeth","city_Pune","city_Raipur","city_Ranchi","city_Sharjah","city_Visakhapatnam"],
+  mean:[94.000822,63.009067,7.520243,168.526926,7.178786,10.045912],
+  scale:[50.883406,33.282704,2.154377,30.904908,2.377393,13.841405]
+};
+
+const TEAM_ABBR = {
+  'LSG':'Lucknow Super Giants','DC':'Delhi Capitals','MI':'Mumbai Indians',
+  'CSK':'Chennai Super Kings','KKR':'Kolkata Knight Riders',
+  'RCB':'Royal Challengers Bengaluru','RR':'Rajasthan Royals',
+  'PBKS':'Punjab Kings','SRH':'Sunrisers Hyderabad','GT':'Gujarat Titans',
+  'HYDK':'Hyderabad'
+};
+
+const CORS = 'https://api.allorigins.win/raw?url=';
+
+let currentId = null, timer = null, secs = 30;
+
+// ── Fetch with CORS proxy ─────────────────────────────────────────────────────
+async function fetchPage(url) {
+  const r = await fetch(CORS + encodeURIComponent(url), {cache:'no-store'});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text();
+}
+
+// ── Get live IPL matches ──────────────────────────────────────────────────────
+async function loadMatches() {
+  try {
+    const text = await fetchPage('https://www.cricbuzz.com/cricket-match/live-scores');
+    const matches = [];
+    const seen = new Set();
+    const re = /href="(\/live-cricket-scores\/(\d+)\/[^"]*premier-league-2026[^"]*)"/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const id = m[2];
+      if (seen.has(id)) continue;
+      seen.add(id);
+      // Get name from nearby text
+      const idx = text.indexOf(m[0]);
+      const snippet = text.slice(idx, idx + 300).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      const nameM = snippet.match(/([A-Z]{2,5} vs [A-Z]{2,5}[^<]{0,60})/);
+      const name = nameM ? nameM[1].trim() : 'IPL 2026 Match';
+      matches.push({ id, name, url: 'https://www.cricbuzz.com' + m[1] });
+    }
+    const sel = document.getElementById('matchSel');
+    if (matches.length === 0) {
+      sel.innerHTML = '<option value="">No live IPL matches right now</option>';
+      document.getElementById('main').innerHTML = '<div class="ld" style="padding:30px">No IPL 2026 matches live right now.<br><span style="font-size:12px;margin-top:8px;display:block">Check back when a match starts — page auto-refreshes every 30s.</span></div>';
+      return;
+    }
+    sel.innerHTML = matches.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    loadMatch(matches[0].id);
+  } catch(e) {
+    document.getElementById('ebanner').style.display = 'block';
+    console.error(e);
+  }
+}
+
+// ── Load + parse match ────────────────────────────────────────────────────────
+async function loadMatch(id) {
+  if (!id) return;
+  currentId = id;
+  resetTimer();
+  try {
+    const text = await fetchPage(`https://www.cricbuzz.com/live-cricket-scores/${id}`);
+    const match = parseMatch(id, text);
+    const preds = makePredictions(match);
+    render(match, preds);
+    document.getElementById('ebanner').style.display = 'none';
+  } catch(e) {
+    document.getElementById('ebanner').style.display = 'block';
+    console.error(e);
+  }
+}
+
+// ── Parse Cricbuzz page ───────────────────────────────────────────────────────
+function parseMatch(id, text) {
+  // Title
+  const titleM = text.match(/<title>(.*?)<\/title>/);
+  const rawTitle = titleM ? titleM[1] : '';
+  const matchName = rawTitle.replace(/^Cricket commentary\s*\|\s*/,'').trim();
+
+  // Teams
+  const teamsM = matchName.match(/^([^,]+?)\s+vs\s+([^,]+?),/i);
+  let team1 = teamsM ? teamsM[1].trim() : 'Team A';
+  let team2 = teamsM ? teamsM[2].trim() : 'Team B';
+
+  // Score: "LSG 65/4 (8.5)"
+  const abbrs = Object.keys(TEAM_ABBR).join('|');
+  const scoreRe = new RegExp(`(${abbrs})\\s+(\\d+)/(\\d+)\\s+\\((\\d+)\\.(\\d+)\\)`);
+  const sm = text.match(scoreRe);
+  let score=0, wickets=0, oversComp=0, ballsIn=0, battingAbbr='';
+  if (sm) {
+    battingAbbr = sm[1]; score = +sm[2]; wickets = +sm[3];
+    oversComp = +sm[4]; ballsIn = +sm[5];
+  }
+
+  // Batters from meta: "(Mitchell Marsh 29(25) Nicholas Pooran 8(8))"
+  const batMeta = text.match(/\(([A-Z][^)]{5,70}\d+\(\d+\)[^)]*)\)/);
+  let activeBatters = [];
+  if (batMeta) {
+    const bRe = /([A-Z][a-zA-Z\s]+?)\s+(\d+)\((\d+)\)/g;
+    let bm;
+    while ((bm = bRe.exec(batMeta[1])) !== null) {
+      const balls = +bm[3], runs = +bm[2];
+      activeBatters.push({ name: bm[1].trim(), runs, balls, fours:0, sixes:0, sr: balls>0 ? +(runs/balls*100).toFixed(1) : 0, dismissed:false });
+    }
+  }
+
+  // Commentary + batting/bowling from Next.js chunks
+  const chunks = [];
+  const chunkRe = /self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)/g;
+  let cm;
+  while ((cm = chunkRe.exec(text)) !== null) chunks.push(cm[1]);
+
+  const batsmanMap = {}, bowlerMap = {}, commentary = [];
+  const recentBalls = [];
+
+  for (const chunk of chunks) {
+    // Batsmen
+    const bmRe = /"batsmanName":"([^"]+)"[^}]*?"runs":(\d+)[^}]*?"balls":(\d+)[^}]*?"fours":(\d+)[^}]*?"sixes":(\d+)/g;
+    let bx;
+    while ((bx = bmRe.exec(chunk)) !== null) {
+      const balls = +bx[3], runs = +bx[2];
+      batsmanMap[bx[1]] = { name:bx[1], runs, balls, fours:+bx[4], sixes:+bx[5], sr:balls>0?+(runs/balls*100).toFixed(1):0, dismissed:false };
+    }
+    // Bowlers
+    const bwRe = /"bowlerName":"([^"]+)"[^}]*?"overs":([\d.]+)[^}]*?"maidens":(\d+)[^}]*?"runs":(\d+)[^}]*?"wickets":(\d+)[^}]*?"economy":([\d.]+)/g;
+    let bwx;
+    while ((bwx = bwRe.exec(chunk)) !== null) {
+      bowlerMap[bwx[1]] = { name:bwx[1], overs:+bwx[2], maidens:+bwx[3], runs:+bwx[4], wickets:+bwx[5], economy:+bwx[6] };
+    }
+    // Commentary
+    const commRe = /"commText":"([^"]+)"[^}]*?"ballMetric":([\d.]+)/g;
+    let cx;
+    while ((cx = commRe.exec(chunk)) !== null) {
+      const txt = cx[1].replace(/<[^>]+>/g,'');
+      const ball = +cx[2];
+      commentary.push({ text:txt, ball });
+      const tl = txt.toLowerCase();
+      if (/six/.test(tl)) recentBalls.push('6');
+      else if (/four|boundary/.test(tl)) recentBalls.push('4');
+      else if (/out!!|caught|bowled|lbw|stumped|run out/.test(tl)) recentBalls.push('W');
+      else if (/wide/.test(tl)) recentBalls.push('wd');
+      else if (/no run|dot/.test(tl)) recentBalls.push('0');
+      else { const rm = tl.match(/(\d+) run/); recentBalls.push(rm ? rm[1] : '1'); }
+    }
+  }
+
+  // Resolve batters
+  const batters = Object.keys(batsmanMap).length ? Object.values(batsmanMap) : activeBatters;
+  const bowlers = Object.values(bowlerMap);
+
+  // FOW
+  const fowList = [];
+  const fowRe = /"fowScore":(\d+)[^}]*?"fowOver":"([^"]+)"[^}]*?"fowBatsman":"([^"]+)"/g;
+  let fx;
+  while ((fx = fowRe.exec(text)) !== null) fowList.push({ score:+fx[1], over:fx[2], batsman:fx[3] });
+
+  // Resolve teams
+  const battingFull = TEAM_ABBR[battingAbbr] || '';
+  let battingTeam = team1, bowlingTeam = team2;
+  if (battingFull) {
+    if (team2.includes(battingFull) || battingFull.includes(team2.split(' ')[0])) {
+      battingTeam = team2; bowlingTeam = team1;
+    }
+  }
+
+  // Dedup commentary
+  const seenBalls = new Set();
+  const commDedup = [];
+  for (const c of commentary.sort((a,b)=>b.ball-a.ball)) {
+    if (!seenBalls.has(c.ball)) { seenBalls.add(c.ball); commDedup.push(c); }
+  }
+
+  // City
+  let city = 'Lucknow';
+  const cityMap = { lucknow:'Lucknow',delhi:'Delhi',mumbai:'Mumbai',chennai:'Chennai',kolkata:'Kolkata',bengaluru:'Bengaluru',bangalore:'Bengaluru',hyderabad:'Hyderabad',ahmedabad:'Ahmedabad',jaipur:'Jaipur',pune:'Pune',mohali:'Mohali' };
+  for (const [k,v] of Object.entries(cityMap)) { if (text.toLowerCase().includes(k)) { city=v; break; } }
+
+  return { id, matchName, battingTeam, bowlingTeam, score, wickets, oversComp, ballsIn, city, target:null, batters, bowlers, recentBalls:recentBalls.slice(-12), fowList, commentary:commDedup.slice(0,7), allPlayers: [...batters.map(b=>({...b,team:battingTeam,wickets:0})), ...bowlers.map(bw=>({name:bw.name,runs:0,balls_faced:0,sr:0,wickets:bw.wickets,economy:bw.economy,team:bowlingTeam}))] };
+}
+
+// ── Predictions ───────────────────────────────────────────────────────────────
+function mlWinProb(bat, bowl, city, target, score, ballsCompleted, wickets) {
+  const runsLeft = target - score;
+  const ballsLeft = 120 - ballsCompleted;
+  if (ballsLeft <= 0) return score >= target ? [1,0] : [0,1];
+  const wicketLeft = 10 - wickets;
+  const crr = ballsCompleted > 0 ? (score/ballsCompleted)*6 : 0;
+  const rrr = ballsLeft > 0 ? (runsLeft/ballsLeft)*6 : 0;
+  const f = new Array(64).fill(0);
+  f[0]=runsLeft; f[1]=ballsLeft; f[2]=wicketLeft; f[3]=target; f[4]=crr; f[5]=rrr;
+  for (let i=0;i<6;i++) f[i]=(f[i]-M.mean[i])/M.scale[i];
+  const bci = M.cols.indexOf('batting_team_'+bat);
+  const bwci = M.cols.indexOf('bowling_team_'+bowl);
+  const ci = M.cols.indexOf('city_'+city);
+  if (bci>-1) f[bci]=1;
+  if (bwci>-1) f[bwci]=1;
+  if (ci>-1) f[ci]=1;
+  let z = M.intercept;
+  for (let i=0;i<64;i++) z += M.coef[i]*f[i];
+  const w = 1/(1+Math.exp(-z));
+  return [w, 1-w];
+}
+
+function nextBallProb(sr=130, eco=8, wickets=0, ballsLeft=60, runsNeeded=60) {
+  const pressure = runsNeeded / Math.max(ballsLeft,1);
+  const srf = sr/130;
+  let p = { dot:.32, '1':.27, '2':.09, '3':.02, '4':.13, '6':.08, W:.05, wd:.04 };
+  p['4'] *= Math.min(1.8, Math.pow(srf,1.5));
+  p['6'] *= Math.min(2.0, Math.pow(srf,2));
+  p.dot *= Math.max(.5, 2-srf);
+  const ef = 8.5/Math.max(eco,1);
+  p.dot *= Math.min(1.5,ef); p['4'] *= Math.max(.6,1/ef); p.W *= Math.min(2,Math.pow(ef,1.2));
+  if (pressure>1.5) { p['4']*=1.3; p['6']*=1.4; p.W*=1.3; p.dot*=.8; }
+  else if (pressure<0.7) { p['4']*=.85; p['6']*=.8; p.dot*=1.15; }
+  if (wickets>=7) { p['6']*=1.4; p.W*=1.3; }
+  const tot = Object.values(p).reduce((a,b)=>a+b,0);
+  return Object.fromEntries(Object.entries(p).map(([k,v])=>[k, +(v/tot*100).toFixed(1)]));
+}
+
+function projectBatting(batters, ballsLeft, wickets) {
+  const wrem = 10-wickets;
+  const bpb = Math.max(1, Math.floor(ballsLeft/Math.max(wrem,1)));
+  return batters.map(b => {
+    if (b.dismissed) return {...b, projected:b.runs, status:'Out'};
+    const sr = b.sr||120;
+    const psurv = Math.pow(1-0.045, bpb);
+    const eball = bpb*psurv + bpb*.5*(1-psurv);
+    return {...b, projected: b.runs + Math.round(eball*sr/100), status:'Batting'};
+  });
+}
+
+function projectBowling(bowlers) {
+  return bowlers.map(bw => {
+    const oi = Math.floor(bw.overs), bi = Math.round((bw.overs-oi)*10);
+    const bd = oi*6+bi;
+    const wpr = bw.wickets/Math.max(bd,1);
+    const oLeft = Math.max(0, 4-bw.overs);
+    return {...bw, overs_done:`${oi}.${bi}`, projected_w:+(bw.wickets+wpr*oLeft*6).toFixed(1), overs_left:+oLeft.toFixed(1)};
+  }).sort((a,b)=>b.projected_w-a.projected_w);
+}
+
+function predictMom(players) {
+  return players.map(p => {
+    const sr = p.sr||0, runs=p.runs||0, wkts=p.wickets||0;
+    let imp = runs + (sr>150?(sr-150)*.15:0) + (runs>=50?10:0) + (runs>=100?25:0) + wkts*20 + (p.catches||0)*8;
+    return {...p, impact:+imp.toFixed(1)};
+  }).sort((a,b)=>b.impact-a.impact).slice(0,5);
+}
+
+function projFirstInnings(score, ballsComp, wickets) {
+  if (!ballsComp) return {lo:140,mid:165,hi:185};
+  const crr=(score/ballsComp)*6, bLeft=120-ballsComp;
+  const ov=ballsComp/6, accel=ov<6?.9:ov<15?1.0:1.15;
+  const wpen=1-wickets*.03;
+  const mid=Math.round(score+(bLeft*crr/6)*accel*wpen);
+  return {lo:Math.round(mid*.92),mid,hi:Math.round(mid*1.08)};
+}
+
+function makePredictions(m) {
+  const bc = m.oversComp*6+m.ballsIn, bl=120-bc;
+  const striker = m.batters.find(b=>!b.dismissed);
+  const bowler = m.bowlers[m.bowlers.length-1];
+  const runsNeeded = m.target ? m.target-m.score : null;
+  let winProb=null;
+  if (m.target && bl>0) {
+    const [w,l]=mlWinProb(m.battingTeam,m.bowlingTeam,m.city,m.target,m.score,bc,m.wickets);
+    winProb={bat:+(w*100).toFixed(1),bowl:+(l*100).toFixed(1)};
+  }
+  return {
+    winProb,
+    nextBall: nextBallProb(striker?.sr||130, bowler?.economy||8, m.wickets, bl, runsNeeded||60),
+    batting: projectBatting(m.batters, bl, m.wickets),
+    bowling: projectBowling(m.bowlers),
+    mom: predictMom(m.allPlayers),
+    scoreProj: !m.target ? projFirstInnings(m.score,bc,m.wickets) : null,
+    crr: bc>0?+((m.score/bc)*6).toFixed(2):0,
+    rrr: runsNeeded&&bl>0?+((runsNeeded/bl)*6).toFixed(2):0,
+    bl, runsNeeded
+  };
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+const NB_LABEL={'dot':'⬤ Dot','1':'1 Run','2':'2 Runs','3':'3 Runs','4':'Four','6':'Six','W':'Wicket','wd':'Wide'};
+const NB_CLR={'dot':'var(--t3)','1':'var(--bl2)','2':'var(--bl2)','3':'var(--bl2)','4':'var(--gn2)','6':'var(--pu2)','W':'var(--rd2)','wd':'var(--yw2)'};
+const MEDALS=['🥇','🥈','🥉','4️⃣','5️⃣'];
+const BCLS={'0':'b0','1':'b1','2':'b2','3':'b3','4':'b4','6':'b6','W':'bW','wd':'bwd','nb':'bnb'};
+
+function render(m, p) {
+  const overs=`${m.oversComp}.${m.ballsIn}`;
+  let html='';
+
+  // Match header
+  html+=`<div class="mhdr">
+    <div class="mname">${m.matchName}</div>
+    <div class="scoreline">
+      <div class="ts"><div class="tn">${m.battingTeam}</div><div class="sc">${m.score}<small>/${m.wickets}</small></div><div class="ov">${overs} overs</div></div>
+      <div class="vsdiv">vs</div>
+      <div class="ts" style="text-align:right">
+        <div class="tn">${m.bowlingTeam}</div>
+        ${m.target?`<div class="sc">${m.target-1}<small>/10</small></div><div class="ov">Target: ${m.target}</div>`:'<div class="sc" style="font-size:20px;color:var(--t3)">—</div><div class="ov">1st Innings</div>'}
+      </div>
+    </div>
+    <div class="mstatus">Live — IPL 2026</div>
+    <div class="stats-row">
+      <div class="sp"><span class="sl">CRR</span><span class="sv">${p.crr}</span></div>
+      ${m.target?`<div class="sp"><span class="sl">RRR</span><span class="sv">${p.rrr}</span></div><div class="sp"><span class="sl">Need</span><span class="sv">${p.runsNeeded} off ${p.bl}</span></div>`:''}
+      <div class="sp"><span class="sl">Overs Left</span><span class="sv">${Math.floor(p.bl/6)}.${p.bl%6}</span></div>
+    </div>
+    ${m.recentBalls.length?`<div class="balls-row"><span class="brl">Last</span>${m.recentBalls.map(b=>`<div class="ball ${BCLS[b]||'b1'}">${b}</div>`).join('')}</div>`:''}
+  </div>`;
+
+  // Row 1: Win Prob + Next Ball
+  html+='<div class="g2">';
+  if (p.winProb) {
+    html+=`<div class="card wpc">
+      <div class="ct">📊 Win Probability</div>
+      <div class="prow"><div class="pn"><span>${m.battingTeam}</span><span class="pct" style="color:var(--pu2)">${p.winProb.bat}%</span></div><div class="pt"><div class="pf pf-bat" style="width:${p.winProb.bat}%"></div></div></div>
+      <div class="pvs">VS</div>
+      <div class="prow"><div class="pn"><span>${m.bowlingTeam}</span><span class="pct" style="color:var(--bl2)">${p.winProb.bowl}%</span></div><div class="pt"><div class="pf pf-bowl" style="width:${p.winProb.bowl}%"></div></div></div>
+    </div>`;
+  } else if (p.scoreProj) {
+    const sp=p.scoreProj;
+    html+=`<div class="card"><div class="ct">🎯 Projected Final Score</div><div class="psr"><div class="psb lo"><div class="pv">${sp.lo}</div><div class="pt2">Low</div></div><div class="psb mid"><div class="pv">${sp.mid}</div><div class="pt2">Expected</div></div><div class="psb hi"><div class="pv">${sp.hi}</div><div class="pt2">High</div></div></div></div>`;
+  }
+
+  const nb=p.nextBall, maxNb=Math.max(...Object.values(nb));
+  html+=`<div class="card"><div class="ct">🎲 Next Ball Prediction</div><div class="nbg">
+    ${Object.entries(nb).map(([k,v])=>`<div class="nbi"><div class="nbl" style="color:${NB_CLR[k]||'var(--t1)'}">${NB_LABEL[k]||k}</div><div class="nbp" style="color:${NB_CLR[k]||'var(--t1)'}">${v}%</div><div class="nbb"><div class="nbbf" style="width:${v/maxNb*100}%;background:${NB_CLR[k]||'var(--pu2)'}"></div></div></div>`).join('')}
+  </div></div>`;
+  html+='</div>';
+
+  // Row 2: Batting + Bowling
+  html+='<div class="g2">';
+  html+=`<div class="card"><div class="ct">🏏 Batting Projections</div>
+    <table class="dt"><thead><tr><th>Batsman</th><th>Runs</th><th>SR</th><th>Projected</th></tr></thead><tbody>
+    ${p.batting.length?p.batting.map(b=>`<tr><td><div class="pname">${b.name}</div><span class="tg ${b.status==='Out'?'tg-out':'tg-bat'}">${b.status}</span></td><td>${b.runs}</td><td style="color:var(--t2)">${b.sr}</td><td><span class="pb ${b.status!=='Out'?'g':''}">${b.projected}</span></td></tr>`).join(''):'<tr><td colspan="4" class="empty">No batting data</td></tr>'}
+    </tbody></table>
+  </div>`;
+  html+=`<div class="card"><div class="ct">🎳 Bowling Projections</div>
+    <table class="dt"><thead><tr><th>Bowler</th><th>Wkts</th><th>Eco</th><th>Proj W</th></tr></thead><tbody>
+    ${p.bowling.length?p.bowling.map(b=>`<tr><td><div class="pname">${b.name}</div><span class="tg tg-bowl">${b.overs_done} ov</span></td><td style="color:var(--rd2);font-weight:700">${b.wickets}</td><td style="color:var(--t2)">${b.economy}</td><td><span class="pb">${b.projected_w}</span></td></tr>`).join(''):'<tr><td colspan="4" class="empty">No bowling data</td></tr>'}
+    </tbody></table>
+  </div>`;
+  html+='</div>';
+
+  // Row 3: MoM + FOW
+  const maxImp=p.mom.length?p.mom[0].impact:1;
+  html+='<div class="g2">';
+  html+=`<div class="card"><div class="ct">⭐ Man of the Match Prediction</div><div class="moml">
+    ${p.mom.map((pm,i)=>`<div class="momi"><div class="momr">${MEDALS[i]||i+1}</div><div class="mominf"><div class="mn">${pm.name}</div><div class="mt">${pm.team}</div><div class="ms">${pm.runs?`<span>🏏 ${pm.runs}</span>`:''}${pm.wickets?`<span>🎳 ${pm.wickets}W</span>`:''}${pm.catches?`<span>🤲 ${pm.catches}</span>`:''}</div><div class="mombar"><div class="f" style="width:${(pm.impact/maxImp*100).toFixed(0)}%"></div></div></div><div class="momsc">${pm.impact}</div></div>`).join('')}
+    ${!p.mom.length?'<div class="empty">No player data</div>':''}
+  </div></div>`;
+
+  html+=`<div class="card"><div class="ct">📉 Fall of Wickets</div>
+    ${m.fowList.length?`<div class="fowl">${m.fowList.map(f=>`<div class="fowi"><span class="fw">${f.score}</span>/<span class="fsco">${f.over}</span> <span class="fb">${f.batsman}</span></div>`).join('')}</div>`:'<div class="empty">No wickets fallen</div>'}
+  </div>`;
+  html+='</div>';
+
+  // Commentary
+  if (m.commentary.length) {
+    html+=`<div class="card" style="margin-bottom:12px"><div class="ct">🎙️ Live Commentary</div><div class="comml">
+      ${m.commentary.map(c=>`<div class="commi"><span class="commb">${c.ball}</span><span class="commt">${c.text}</span></div>`).join('')}
+    </div></div>`;
+  }
+
+  html+='<div class="footer">IPL 2026 Live Predictor • Data from Cricbuzz • ML predictions for entertainment • Built by Vivek & Hardik</div>';
+  document.getElementById('main').innerHTML = html;
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+function resetTimer() {
+  clearInterval(timer); secs=30;
+  document.getElementById('cd').textContent=secs;
+  timer=setInterval(()=>{
+    secs--;
+    document.getElementById('cd').textContent=secs;
+    if(secs<=0){ if(currentId) loadMatch(currentId); else loadMatches(); }
+  },1000);
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+loadMatches();
+resetTimer();
+</script>
+</body>
+</html>
