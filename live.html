@@ -147,6 +147,32 @@ select:focus{border-color:var(--pu2)}
 .ebanner{background:rgba(218,54,51,.1);border:1px solid rgba(248,81,73,.3);border-radius:9px;padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--rd2);display:none}
 
 .footer{text-align:center;color:var(--t3);font-size:11px;margin-top:36px;padding-top:16px;border-top:1px solid var(--b1)}
+
+/* ── Paywall ── */
+.pw-overlay{position:fixed;inset:0;z-index:9999;background:rgba(7,8,10,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px}
+.pw-box{background:var(--card);border:1px solid var(--b2);border-radius:18px;max-width:420px;width:100%;padding:30px 26px;text-align:center;position:relative}
+.pw-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,.15);border:1px solid rgba(168,85,247,.3);color:var(--pu2);font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 10px;border-radius:20px;margin-bottom:16px}
+.pw-title{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px}
+.pw-sub{font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.5}
+.pw-features{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;text-align:left}
+.pw-feat{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2)}
+.pw-feat .ic{color:var(--gn2);font-size:14px;flex-shrink:0}
+.pw-plans{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.pw-plan{background:var(--card2);border:2px solid var(--b1);border-radius:12px;padding:12px 8px;cursor:pointer;transition:border-color .2s}
+.pw-plan:hover,.pw-plan.sel{border-color:var(--pu2);background:rgba(124,58,237,.08)}
+.pw-plan .pamt{font-size:22px;font-weight:900;color:var(--pu2);line-height:1}
+.pw-plan .pdur{font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.pw-plan .pbest{font-size:9px;background:var(--gn);color:#fff;border-radius:4px;padding:1px 5px;margin-top:4px;display:inline-block;font-weight:700}
+.pw-btn{width:100%;background:linear-gradient(135deg,var(--pu),var(--pu2));color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:opacity .2s}
+.pw-btn:hover{opacity:.9}
+.pw-btn:disabled{opacity:.5;cursor:not-allowed}
+.pw-trial{font-size:11px;color:var(--t3);margin-top:10px}
+.pw-trial span{color:var(--gn2);font-weight:700}
+.pw-skip{font-size:11px;color:var(--t3);margin-top:8px;cursor:pointer;text-decoration:underline;display:block}
+.pw-skip:hover{color:var(--t2)}
+.locked-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(218,54,51,.1);border:1px solid rgba(248,81,73,.2);color:var(--rd2);font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:1px;margin-left:6px}
+#main.blurred .card:not(.free){filter:blur(4px);pointer-events:none;user-select:none;position:relative}
+#main.blurred .mhdr{filter:none}
 </style>
 </head>
 <body>
@@ -669,7 +695,108 @@ async function doRefresh() {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-(async () => { await loadMatches(); startCountdown(); })();
+(async () => { await loadMatches(); startCountdown(); checkPaywall(); })();
+</script>
+
+<!-- ── Paywall ──────────────────────────────────────────────────────────────── -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<div class="pw-overlay" id="pwOverlay" style="display:none">
+  <div class="pw-box">
+    <div class="pw-badge">🏆 PREMIUM</div>
+    <div class="pw-title">IPL 2026 Predictor Pro</div>
+    <div class="pw-sub">Get AI-powered win probability, next ball predictions, player projections &amp; Man of the Match forecasts — every ball, every match.</div>
+    <div class="pw-features">
+      <div class="pw-feat"><span class="ic">✅</span> Live win probability (ML model)</div>
+      <div class="pw-feat"><span class="ic">✅</span> Next ball prediction (8 outcomes)</div>
+      <div class="pw-feat"><span class="ic">✅</span> Batting &amp; bowling projections</div>
+      <div class="pw-feat"><span class="ic">✅</span> Man of the Match prediction</div>
+      <div class="pw-feat"><span class="ic">✅</span> Auto-refresh every 10 seconds</div>
+      <div class="pw-feat"><span class="ic">✅</span> Works on phone, tablet &amp; laptop</div>
+    </div>
+    <div class="pw-plans">
+      <div class="pw-plan sel" id="plan7" onclick="selectPlan(7,49)">
+        <div class="pamt">₹49</div>
+        <div class="pdur">7 Days</div>
+      </div>
+      <div class="pw-plan" id="planSeason" onclick="selectPlan('season',149)">
+        <div class="pamt">₹149</div>
+        <div class="pdur">Full Season</div>
+        <div class="pbest">BEST VALUE</div>
+      </div>
+    </div>
+    <button class="pw-btn" id="pwBtn" onclick="startPayment()">🔓 Unlock for ₹49</button>
+    <div class="pw-trial">🎁 <span>First match FREE</span> — no credit card needed</div>
+    <span class="pw-skip" onclick="useFreeMatch()">Watch 1 match free →</span>
+  </div>
+</div>
+
+<script>
+// ── Paywall logic ─────────────────────────────────────────────────────────────
+// REPLACE with your actual Razorpay Key ID from razorpay.com/dashboard
+const RZP_KEY = 'rzp_test_REPLACE_WITH_YOUR_KEY';
+
+let selectedPlan = { days: 7, amount: 49 };
+
+function selectPlan(days, amount) {
+  selectedPlan = { days, amount };
+  document.querySelectorAll('.pw-plan').forEach(el => el.classList.remove('sel'));
+  document.getElementById(days === 7 ? 'plan7' : 'planSeason').classList.add('sel');
+  document.getElementById('pwBtn').textContent = `🔓 Unlock for ₹${amount}`;
+}
+
+function checkPaywall() {
+  try {
+    const p = JSON.parse(localStorage.getItem('ipl_premium') || '{}');
+    if (p.expiry && p.expiry > Date.now()) return; // valid subscription
+    const free = JSON.parse(localStorage.getItem('ipl_free') || '{}');
+    if (free.used && !free.expired) {
+      // Free match already used — show paywall
+      document.getElementById('main').classList.add('blurred');
+      document.getElementById('pwOverlay').style.display = 'flex';
+    } else if (!free.used) {
+      // First time — mark free match granted
+      localStorage.setItem('ipl_free', JSON.stringify({ used: false }));
+    }
+  } catch(_) {}
+}
+
+function useFreeMatch() {
+  localStorage.setItem('ipl_free', JSON.stringify({ used: true, expired: false }));
+  document.getElementById('pwOverlay').style.display = 'none';
+  document.getElementById('main').classList.remove('blurred');
+}
+
+function unlockPremium(paymentId) {
+  const days = selectedPlan.days === 'season' ? 180 : selectedPlan.days;
+  localStorage.setItem('ipl_premium', JSON.stringify({
+    paymentId,
+    expiry: Date.now() + days * 24 * 60 * 60 * 1000
+  }));
+  document.getElementById('pwOverlay').style.display = 'none';
+  document.getElementById('main').classList.remove('blurred');
+  document.getElementById('ebanner').style.display = 'none';
+}
+
+function startPayment() {
+  if (RZP_KEY === 'rzp_test_REPLACE_WITH_YOUR_KEY') {
+    alert('⚠️ Razorpay key not configured yet.\nAdd your key from razorpay.com/dashboard to accept payments.');
+    return;
+  }
+  const btn = document.getElementById('pwBtn');
+  btn.disabled = true; btn.textContent = 'Opening payment…';
+  const options = {
+    key: RZP_KEY,
+    amount: selectedPlan.amount * 100, // paise
+    currency: 'INR',
+    name: 'IPL 2026 Predictor Pro',
+    description: selectedPlan.days === 'season' ? 'Full Season Pass' : '7-Day Premium Access',
+    image: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏏</text></svg>',
+    theme: { color: '#7c3aed' },
+    handler: function(resp) { unlockPremium(resp.razorpay_payment_id); },
+    modal: { ondismiss: function() { btn.disabled=false; btn.textContent=`🔓 Unlock for ₹${selectedPlan.amount}`; } }
+  };
+  new Razorpay(options).open();
+}
 </script>
 </body>
 </html>

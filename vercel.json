@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "live.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/live.html" },
+    { "src": "/live", "dest": "/live.html" }
+  ]
+}
