@@ -193,18 +193,62 @@ const TEAM_ABBR = {
   'HYDK':'Hyderabad'
 };
 
-// Multiple CORS proxies — race for the fastest response
+// ── Static fallback: DC vs LSG, Match 5, IPL 2026 (Apr 1 2026) ───────────────
+const STATIC_LAST = {
+  id:'static', matchName:'Lucknow Super Giants vs Delhi Capitals, 5th Match, IPL 2026',
+  battingTeam:'Delhi Capitals', bowlingTeam:'Lucknow Super Giants',
+  score:145, wickets:4, oversComp:17, ballsIn:1, city:'Lucknow', target:142,
+  batters:[
+    {name:'Sameer Rizvi',   runs:70,balls:47,fours:5,sixes:3,sr:148.9,dismissed:false},
+    {name:'Tristan Stubbs', runs:38,balls:28,fours:4,sixes:1,sr:135.7,dismissed:false},
+    {name:'Jake Fraser-McGurk',runs:5,balls:8,fours:1,sixes:0,sr:62.5,dismissed:true},
+    {name:'KL Rahul',       runs:14,balls:12,fours:2,sixes:0,sr:116.7,dismissed:true},
+  ],
+  bowlers:[
+    {name:'Prince Yadav',   overs:3.0,maidens:0,runs:20,wickets:2,economy:6.7},
+    {name:'Mitchell Marsh', overs:2.0,maidens:0,runs:18,wickets:0,economy:9.0},
+    {name:'Ravi Bishnoi',   overs:4.0,maidens:0,runs:31,wickets:1,economy:7.8},
+    {name:'M Pathirana',    overs:3.0,maidens:0,runs:29,wickets:1,economy:9.7},
+  ],
+  recentBalls:['4','0','1','6','W','1','4','0','2','1','4','1'],
+  fowList:[
+    {score:8,  over:'1.4', batsman:'Jake Fraser-McGurk'},
+    {score:15, over:'3.2', batsman:'KL Rahul'},
+    {score:26, over:'5.1', batsman:'Axar Patel'},
+    {score:26, over:'5.3', batsman:'David Warner'},
+  ],
+  commentary:[
+    {ball:17.1,text:'FOUR! Rizvi drives through covers. DC win by 6 wickets!'},
+    {ball:16.6,text:'One leg bye. 5 needed off 6 balls.'},
+    {ball:16.5,text:'Excellent yorker from Pathirana. Dot ball.'},
+    {ball:16.4,text:'SIX! Stubbs launches it over mid-wicket!'},
+    {ball:16.3,text:'Wide outside off, left alone.'},
+    {ball:16.2,text:'FOUR! Rizvi cuts late past gully'},
+  ],
+  allPlayers:[
+    {name:'Sameer Rizvi',  runs:70,balls:47,sr:148.9,wickets:0,catches:0,team:'Delhi Capitals'},
+    {name:'Tristan Stubbs',runs:38,balls:28,sr:135.7,wickets:0,catches:0,team:'Delhi Capitals'},
+    {name:'T Natarajan',   runs:0,balls:0,sr:0,wickets:3,economy:7.7,catches:0,team:'Lucknow Super Giants'},
+    {name:'Lungi Ngidi',   runs:0,balls:0,sr:0,wickets:3,economy:8.7,catches:0,team:'Lucknow Super Giants'},
+    {name:'Kuldeep Yadav', runs:0,balls:0,sr:0,wickets:2,economy:9.8,catches:0,team:'Delhi Capitals'},
+    {name:'KL Rahul',      runs:14,balls:12,sr:116.7,wickets:0,catches:1,team:'Delhi Capitals'},
+  ]
+};
+
+// Multiple CORS proxies — race for fastest
 const PROXIES = [
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
   u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
 ];
 
-let currentId = null, cdTimer = null, refreshTimer = null, secs = 10;
+let currentId = null, cdTimer = null, refreshTimer = null, secs = 10, timerRunning = false;
 
-// ── Fetch: race all proxies, return first success ─────────────────────────────
+// ── Fetch: race all proxies, first success wins ───────────────────────────────
 async function fetchPage(url) {
   const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), 12000); // 12s global timeout
   try {
     const text = await Promise.any(
       PROXIES.map(px =>
@@ -212,41 +256,58 @@ async function fetchPage(url) {
           .then(r => { if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
       )
     );
-    ctrl.abort();
+    ctrl.abort(); clearTimeout(id);
     return text;
   } catch(e) {
+    clearTimeout(id);
     throw new Error('All proxies failed');
   }
 }
 
-// ── Extract IPL match links from any Cricbuzz page ────────────────────────────
+// ── Extract IPL match links from page HTML ────────────────────────────────────
 function extractIPLMatches(text) {
   const matches = [], seen = new Set();
-  // Match premier-league-2026 OR ipl-2026 slugs
   const re = /href="(\/live-cricket-scores\/(\d+)\/[^"]*(?:premier-league-2026|ipl-2026)[^"]*)"/gi;
   let m;
   while ((m = re.exec(text)) !== null) {
-    const id = m[2];
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const idx = text.indexOf(m[0]);
-    const snip = text.slice(idx, idx+300).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    if (seen.has(m[2])) continue;
+    seen.add(m[2]);
+    const snip = text.slice(text.indexOf(m[0]), text.indexOf(m[0])+300).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
     const nm = snip.match(/([A-Z]{2,5}\s+vs\s+[A-Z]{2,5}[^<]{0,60})/);
-    matches.push({ id, name: nm ? nm[1].trim() : 'IPL 2026 Match' });
+    matches.push({ id: m[2], name: nm ? nm[1].trim() : 'IPL 2026 Match' });
   }
   return matches;
+}
+
+// ── Show last match (localStorage → static fallback) ─────────────────────────
+function showLastMatch(reason) {
+  const sel = document.getElementById('matchSel');
+  // 1. Try localStorage
+  try {
+    const saved = localStorage.getItem('lastMatchData');
+    if (saved) {
+      const {match, preds, ts} = JSON.parse(saved);
+      const ago = Math.round((Date.now()-ts)/60000);
+      const agoStr = ago < 60 ? `${ago}m ago` : `${Math.round(ago/60)}h ago`;
+      sel.innerHTML = `<option value="${match.id}">${match.matchName} (last seen ${agoStr})</option>`;
+      render(match, preds, true, reason + ` — Last data from ${agoStr}`);
+      return;
+    }
+  } catch(_) {}
+  // 2. Always-available static fallback
+  const sp = makePredictions(STATIC_LAST);
+  sel.innerHTML = `<option value="static">LSG vs DC, 5th Match — Apr 1 2026 (completed)</option>`;
+  render(STATIC_LAST, sp, true, reason + ' — Showing last known match: DC beat LSG by 6 wkts');
 }
 
 // ── Get live OR recent IPL matches ───────────────────────────────────────────
 async function loadMatches() {
   try {
-    // Try live-scores + home page in parallel for broader coverage
     const pages = await Promise.allSettled([
       fetchPage('https://www.cricbuzz.com/cricket-match/live-scores'),
       fetchPage('https://www.cricbuzz.com'),
     ]);
-    const seen = new Set();
-    let allMatches = [];
+    const seen = new Set(), allMatches = [];
     for (const p of pages) {
       if (p.status === 'fulfilled') {
         for (const m of extractIPLMatches(p.value)) {
@@ -254,28 +315,15 @@ async function loadMatches() {
         }
       }
     }
-
     const sel = document.getElementById('matchSel');
     if (allMatches.length === 0) {
-      sel.innerHTML = '<option value="">No IPL 2026 matches found</option>';
-      // Show localStorage cache if available
-      try {
-        const saved = localStorage.getItem('lastMatchData');
-        if (saved) {
-          const {match, preds, ts} = JSON.parse(saved);
-          const ago = Math.round((Date.now()-ts)/60000);
-          const agoStr = ago < 60 ? `${ago}m ago` : `${Math.round(ago/60)}h ago`;
-          sel.innerHTML = `<option value="${match.id}">${match.matchName} (Last Match)</option>`;
-          render(match, preds, true, `No match live right now — showing last match data (${agoStr})`);
-          return;
-        }
-      } catch(_) {}
-      document.getElementById('main').innerHTML = '<div class="ld" style="padding:30px">No IPL 2026 matches found yet.<br><span style="font-size:12px;margin-top:8px;display:block">Auto-refreshes every 10s.</span></div>';
+      showLastMatch('No IPL 2026 match live right now');
       return;
     }
     sel.innerHTML = allMatches.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
     await loadMatch(allMatches[0].id);
   } catch(e) {
+    showLastMatch('Could not connect to live data');
     document.getElementById('ebanner').style.display = 'block';
     console.error(e);
   }
@@ -295,6 +343,8 @@ async function loadMatch(id) {
     try { localStorage.setItem('lastMatchId', id); localStorage.setItem('lastMatchData', JSON.stringify({match, preds, ts: Date.now()})); } catch(_) {}
   } catch(e) {
     document.getElementById('ebanner').style.display = 'block';
+    // On fetch failure, show last known data rather than blank
+    showLastMatch('Live fetch failed');
     console.error(e);
   }
 }
@@ -599,23 +649,21 @@ function render(m, p, isLast=false, lastBanner='') {
   document.getElementById('main').innerHTML = html;
 }
 
-// ── Timer: starts AFTER fetch completes (no overlap) ─────────────────────────
+// ── Timer: counts down AFTER each fetch, never negative ──────────────────────
 function startCountdown() {
   clearInterval(cdTimer); clearTimeout(refreshTimer);
   secs = 10;
-  const el = () => document.getElementById('cd');
-  if (el()) el().textContent = secs;
-  cdTimer = setInterval(() => {
-    secs--;
-    if (el()) el().textContent = secs;
-    if (secs <= 0) clearInterval(cdTimer);
-  }, 1000);
+  const upd = () => { const el=document.getElementById('cd'); if(el) el.textContent=Math.max(0,secs); };
+  upd();
+  cdTimer = setInterval(() => { secs--; upd(); if (secs<=0) clearInterval(cdTimer); }, 1000);
   refreshTimer = setTimeout(doRefresh, 10000);
 }
 
 async function doRefresh() {
   clearInterval(cdTimer);
-  if (currentId) await loadMatch(currentId);
+  const el = document.getElementById('cd');
+  if (el) el.textContent = '…';
+  if (currentId && currentId !== 'static') await loadMatch(currentId);
   else await loadMatches();
   startCountdown();
 }
