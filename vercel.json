@@ -1,13 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "live.html", "use": "@vercel/static" },
-    { "src": "api/*.py", "use": "@vercel/python" }
-  ],
-  "routes": [
-    { "src": "/api/matches", "dest": "/api/matches.py" },
-    { "src": "/api/match",   "dest": "/api/match.py" },
-    { "src": "/",            "dest": "/live.html" },
-    { "src": "/live",        "dest": "/live.html" }
+  "rewrites": [
+    { "source": "/",     "destination": "/live.html" },
+    { "source": "/live", "destination": "/live.html" }
   ]
 }
