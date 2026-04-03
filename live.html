@@ -261,54 +261,11 @@ const STATIC_LAST = {
   ]
 };
 
-// Multiple CORS proxies — race for fastest
-const PROXIES = [
-  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-  u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-];
-
 let currentId = null, cdTimer = null, refreshTimer = null, secs = 10, timerRunning = false;
-
-// ── Fetch: race all proxies, first success wins ───────────────────────────────
-async function fetchPage(url) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), 12000); // 12s global timeout
-  try {
-    const text = await Promise.any(
-      PROXIES.map(px =>
-        fetch(px(url), {cache:'no-store', signal: ctrl.signal})
-          .then(r => { if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      )
-    );
-    ctrl.abort(); clearTimeout(id);
-    return text;
-  } catch(e) {
-    clearTimeout(id);
-    throw new Error('All proxies failed');
-  }
-}
-
-// ── Extract IPL match links from page HTML ────────────────────────────────────
-function extractIPLMatches(text) {
-  const matches = [], seen = new Set();
-  const re = /href="(\/live-cricket-scores\/(\d+)\/[^"]*(?:premier-league-2026|ipl-2026)[^"]*)"/gi;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    if (seen.has(m[2])) continue;
-    seen.add(m[2]);
-    const snip = text.slice(text.indexOf(m[0]), text.indexOf(m[0])+300).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
-    const nm = snip.match(/([A-Z]{2,5}\s+vs\s+[A-Z]{2,5}[^<]{0,60})/);
-    matches.push({ id: m[2], name: nm ? nm[1].trim() : 'IPL 2026 Match' });
-  }
-  return matches;
-}
 
 // ── Show last match (localStorage → static fallback) ─────────────────────────
 function showLastMatch(reason) {
   const sel = document.getElementById('matchSel');
-  // 1. Try localStorage
   try {
     const saved = localStorage.getItem('lastMatchData');
     if (saved) {
@@ -320,34 +277,24 @@ function showLastMatch(reason) {
       return;
     }
   } catch(_) {}
-  // 2. Always-available static fallback
   const sp = makePredictions(STATIC_LAST);
   sel.innerHTML = `<option value="static">LSG vs DC, 5th Match — Apr 1 2026 (completed)</option>`;
   render(STATIC_LAST, sp, true, reason + ' — Showing last known match: DC beat LSG by 6 wkts');
 }
 
-// ── Get live OR recent IPL matches ───────────────────────────────────────────
+// ── Get live IPL matches from server-side API ─────────────────────────────────
 async function loadMatches() {
   try {
-    const pages = await Promise.allSettled([
-      fetchPage('https://www.cricbuzz.com/cricket-match/live-scores'),
-      fetchPage('https://www.cricbuzz.com'),
-    ]);
-    const seen = new Set(), allMatches = [];
-    for (const p of pages) {
-      if (p.status === 'fulfilled') {
-        for (const m of extractIPLMatches(p.value)) {
-          if (!seen.has(m.id)) { seen.add(m.id); allMatches.push(m); }
-        }
-      }
-    }
+    const res = await fetch('/api/matches', {cache: 'no-store'});
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const matches = await res.json();
     const sel = document.getElementById('matchSel');
-    if (allMatches.length === 0) {
+    if (!Array.isArray(matches) || matches.length === 0) {
       showLastMatch('No IPL 2026 match live right now');
       return;
     }
-    sel.innerHTML = allMatches.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-    await loadMatch(allMatches[0].id);
+    sel.innerHTML = matches.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    await loadMatch(matches[0].id);
   } catch(e) {
     showLastMatch('Could not connect to live data');
     document.getElementById('ebanner').style.display = 'block';
@@ -355,132 +302,24 @@ async function loadMatches() {
   }
 }
 
-// ── Load + parse match ────────────────────────────────────────────────────────
+// ── Load match data from server-side API ──────────────────────────────────────
 async function loadMatch(id) {
-  if (!id) return;
+  if (!id || id === 'static') return;
   currentId = id;
   try {
-    const text = await fetchPage(`https://www.cricbuzz.com/live-cricket-scores/${id}`);
-    const match = parseMatch(id, text);
+    const res = await fetch(`/api/match?id=${id}`, {cache: 'no-store'});
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const match = await res.json();
+    if (match.error) throw new Error(match.error);
     const preds = makePredictions(match);
     render(match, preds, false);
     document.getElementById('ebanner').style.display = 'none';
-    // Save last match to localStorage for offline/no-match fallback
     try { localStorage.setItem('lastMatchId', id); localStorage.setItem('lastMatchData', JSON.stringify({match, preds, ts: Date.now()})); } catch(_) {}
   } catch(e) {
     document.getElementById('ebanner').style.display = 'block';
-    // On fetch failure, show last known data rather than blank
     showLastMatch('Live fetch failed');
     console.error(e);
   }
-}
-
-// ── Parse Cricbuzz page ───────────────────────────────────────────────────────
-function parseMatch(id, text) {
-  // Title
-  const titleM = text.match(/<title>(.*?)<\/title>/);
-  const rawTitle = titleM ? titleM[1] : '';
-  const matchName = rawTitle.replace(/^Cricket commentary\s*\|\s*/,'').trim();
-
-  // Teams
-  const teamsM = matchName.match(/^([^,]+?)\s+vs\s+([^,]+?),/i);
-  let team1 = teamsM ? teamsM[1].trim() : 'Team A';
-  let team2 = teamsM ? teamsM[2].trim() : 'Team B';
-
-  // Score: "LSG 65/4 (8.5)"
-  const abbrs = Object.keys(TEAM_ABBR).join('|');
-  const scoreRe = new RegExp(`(${abbrs})\\s+(\\d+)/(\\d+)\\s+\\((\\d+)\\.(\\d+)\\)`);
-  const sm = text.match(scoreRe);
-  let score=0, wickets=0, oversComp=0, ballsIn=0, battingAbbr='';
-  if (sm) {
-    battingAbbr = sm[1]; score = +sm[2]; wickets = +sm[3];
-    oversComp = +sm[4]; ballsIn = +sm[5];
-  }
-
-  // Batters from meta: "(Mitchell Marsh 29(25) Nicholas Pooran 8(8))"
-  const batMeta = text.match(/\(([A-Z][^)]{5,70}\d+\(\d+\)[^)]*)\)/);
-  let activeBatters = [];
-  if (batMeta) {
-    const bRe = /([A-Z][a-zA-Z\s]+?)\s+(\d+)\((\d+)\)/g;
-    let bm;
-    while ((bm = bRe.exec(batMeta[1])) !== null) {
-      const balls = +bm[3], runs = +bm[2];
-      activeBatters.push({ name: bm[1].trim(), runs, balls, fours:0, sixes:0, sr: balls>0 ? +(runs/balls*100).toFixed(1) : 0, dismissed:false });
-    }
-  }
-
-  // Commentary + batting/bowling from Next.js chunks
-  const chunks = [];
-  const chunkRe = /self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)/g;
-  let cm;
-  while ((cm = chunkRe.exec(text)) !== null) chunks.push(cm[1]);
-
-  const batsmanMap = {}, bowlerMap = {}, commentary = [];
-  const recentBalls = [];
-
-  for (const chunk of chunks) {
-    // Batsmen
-    const bmRe = /"batsmanName":"([^"]+)"[^}]*?"runs":(\d+)[^}]*?"balls":(\d+)[^}]*?"fours":(\d+)[^}]*?"sixes":(\d+)/g;
-    let bx;
-    while ((bx = bmRe.exec(chunk)) !== null) {
-      const balls = +bx[3], runs = +bx[2];
-      batsmanMap[bx[1]] = { name:bx[1], runs, balls, fours:+bx[4], sixes:+bx[5], sr:balls>0?+(runs/balls*100).toFixed(1):0, dismissed:false };
-    }
-    // Bowlers
-    const bwRe = /"bowlerName":"([^"]+)"[^}]*?"overs":([\d.]+)[^}]*?"maidens":(\d+)[^}]*?"runs":(\d+)[^}]*?"wickets":(\d+)[^}]*?"economy":([\d.]+)/g;
-    let bwx;
-    while ((bwx = bwRe.exec(chunk)) !== null) {
-      bowlerMap[bwx[1]] = { name:bwx[1], overs:+bwx[2], maidens:+bwx[3], runs:+bwx[4], wickets:+bwx[5], economy:+bwx[6] };
-    }
-    // Commentary
-    const commRe = /"commText":"([^"]+)"[^}]*?"ballMetric":([\d.]+)/g;
-    let cx;
-    while ((cx = commRe.exec(chunk)) !== null) {
-      const txt = cx[1].replace(/<[^>]+>/g,'');
-      const ball = +cx[2];
-      commentary.push({ text:txt, ball });
-      const tl = txt.toLowerCase();
-      if (/six/.test(tl)) recentBalls.push('6');
-      else if (/four|boundary/.test(tl)) recentBalls.push('4');
-      else if (/out!!|caught|bowled|lbw|stumped|run out/.test(tl)) recentBalls.push('W');
-      else if (/wide/.test(tl)) recentBalls.push('wd');
-      else if (/no run|dot/.test(tl)) recentBalls.push('0');
-      else { const rm = tl.match(/(\d+) run/); recentBalls.push(rm ? rm[1] : '1'); }
-    }
-  }
-
-  // Resolve batters
-  const batters = Object.keys(batsmanMap).length ? Object.values(batsmanMap) : activeBatters;
-  const bowlers = Object.values(bowlerMap);
-
-  // FOW
-  const fowList = [];
-  const fowRe = /"fowScore":(\d+)[^}]*?"fowOver":"([^"]+)"[^}]*?"fowBatsman":"([^"]+)"/g;
-  let fx;
-  while ((fx = fowRe.exec(text)) !== null) fowList.push({ score:+fx[1], over:fx[2], batsman:fx[3] });
-
-  // Resolve teams
-  const battingFull = TEAM_ABBR[battingAbbr] || '';
-  let battingTeam = team1, bowlingTeam = team2;
-  if (battingFull) {
-    if (team2.includes(battingFull) || battingFull.includes(team2.split(' ')[0])) {
-      battingTeam = team2; bowlingTeam = team1;
-    }
-  }
-
-  // Dedup commentary
-  const seenBalls = new Set();
-  const commDedup = [];
-  for (const c of commentary.sort((a,b)=>b.ball-a.ball)) {
-    if (!seenBalls.has(c.ball)) { seenBalls.add(c.ball); commDedup.push(c); }
-  }
-
-  // City
-  let city = 'Lucknow';
-  const cityMap = { lucknow:'Lucknow',delhi:'Delhi',mumbai:'Mumbai',chennai:'Chennai',kolkata:'Kolkata',bengaluru:'Bengaluru',bangalore:'Bengaluru',hyderabad:'Hyderabad',ahmedabad:'Ahmedabad',jaipur:'Jaipur',pune:'Pune',mohali:'Mohali' };
-  for (const [k,v] of Object.entries(cityMap)) { if (text.toLowerCase().includes(k)) { city=v; break; } }
-
-  return { id, matchName, battingTeam, bowlingTeam, score, wickets, oversComp, ballsIn, city, target:null, batters, bowlers, recentBalls:recentBalls.slice(-12), fowList, commentary:commDedup.slice(0,7), allPlayers: [...batters.map(b=>({...b,team:battingTeam,wickets:0})), ...bowlers.map(bw=>({name:bw.name,runs:0,balls_faced:0,sr:0,wickets:bw.wickets,economy:bw.economy,team:bowlingTeam}))] };
 }
 
 // ── Predictions ───────────────────────────────────────────────────────────────
