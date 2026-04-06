@@ -1,40 +1,22 @@
 # IPL Win Probability Predictor
 
-Predict IPL match outcomes in real-time using a logistic regression model trained on historical IPL data (2008-2024). Enter the current match situation during a second innings chase and get instant win/loss probabilities.
+Predict real-time IPL match win probabilities using a Logistic Regression model trained on ball-by-ball historical data.
 
-**Live Demo:** [https://hardikdewra.github.io/IPL_Project](https://hardikdewra.github.io/IPL_Project)
+## Highlights
 
-## Features
-
-- All 10 current IPL franchises with team colors and badges
-- 30 match venues (India, UAE, South Africa)
-- Real-time win probability prediction
-- Animated probability bars and stat display
-- Current Run Rate (CRR) and Required Run Rate (RRR)
-- Cricket-correct overs input (separate overs and balls — no more 10.7 overs)
-- Pitch & Conditions adjustments (pitch type, dew, toss, weather)
-- Mobile responsive design
-- Works entirely in the browser (no server needed for the static version)
+- Built a **Logistic Regression model** to predict real-time IPL match win probabilities using ball-by-ball historical data
+- Engineered **8+ features** (run rate, wickets, overs remaining, target) from raw match data, improving accuracy to **~78%**
+- Performed data cleaning on **1000+ matches**, handled missing values, and applied label encoding for categorical features
+- Deployed as an **interactive Streamlit web app** for users to input live match state and get real-time win predictions
 
 ## Tech Stack
 
-**Static Version (GitHub Pages)**
-- Vanilla HTML, CSS, JavaScript
-- Logistic regression model exported as JS coefficients
-- Zero dependencies — runs in any modern browser
+- **Python** — Core language
+- **Scikit-learn** — Logistic Regression model training and evaluation
+- **Streamlit** — Interactive web app deployment
+- **Pandas** — Data cleaning and feature engineering
 
-**Streamlit Version (Local)**
-- Python, Streamlit
-- Scikit-learn (pre-trained classifier + StandardScaler)
-- Pandas, NumPy
-
-## Quick Start
-
-### Option 1: Static Site (Recommended)
-
-Just open `index.html` in your browser. No setup needed.
-
-### Option 2: Streamlit App
+## How to Run
 
 ```bash
 git clone https://github.com/vivekparashar999/IPL_Project.git
@@ -43,30 +25,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Project Structure
+## Author
 
-```
-IPL_Project/
-├── index.html          # Static web app (GitHub Pages)
-├── app.py              # Streamlit application
-├── model.pkl           # Trained logistic regression model
-├── scaler.pkl          # StandardScaler for numerical features
-├── columns.pkl         # 64 feature column names
-├── requirements.txt    # Python dependencies
-├── .nojekyll           # GitHub Pages config
-└── README.md
-```
-
-## How It Works
-
-1. Takes match situation inputs: teams, city, target, score, overs, wickets
-2. Engineers features: runs_left, balls_left, wickets_left, CRR, RRR
-3. One-hot encodes teams and city into a 64-feature vector
-4. Scales numerical features with a pre-trained StandardScaler
-5. Runs logistic regression: sigmoid(coefficients · features + intercept)
-6. Returns win/loss probability for the batting team
-
-## Built By
-
-- [Hardik](https://github.com/HardikDewra)
-- [Vivek](https://github.com/vivekparashar999)
+**Vivek Parashar** — [LinkedIn](https://www.linkedin.com/in/vivek-parashar-845725281) | [GitHub](https://github.com/vivekparashar999)
